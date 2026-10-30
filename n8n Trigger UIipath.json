@@ -1,0 +1,56 @@
+{
+  "name": "n8n Trigger UIipath",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a1f429ce-c45e-4d21-84c3-20f2b97821ec",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "command": "\"C:\\Users\\AhsanYasirSharar\\AppData\\Local\\Programs\\UiPath\\Studio\\UiRobot.exe\" execute --file \"C:\\Users\\AhsanYasirSharar\\n8n-files\\Task2.1.0.2.nupkg\" --input \"{'in_DateText':'n8n-test-1'}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "0e024857-d8cd-4aa7-8b6f-fba913f02cb2",
+      "name": "Execute Command"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "eea5bf23-23a8-4ed8-9086-06ddd68ea427",
+  "meta": {
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "lqZgYaUIUvutN1Xu",
+  "tags": []
+}
