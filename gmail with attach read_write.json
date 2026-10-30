@@ -1,0 +1,173 @@
+{
+  "name": "gmail with attach read/write",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5efa9a92-c6a5-4137-86b9-c7b201196179",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "simple": false,
+        "filters": {
+          "q": "in:inbox -has:attachment is:unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a9258e67-afef-4778-a0c5-38f2e88b4210",
+      "name": "Get many messages",
+      "webhookId": "03d36844-8bc0-407a-8622-4773761a11cf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "afb0bd5e-2c2e-43c3-8116-7d8f4cb2bda0",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "51853827-6d64-47df-8d04-5947b8934639",
+              "name": "from",
+              "value": "={{ $json.from.text }}",
+              "type": "string"
+            },
+            {
+              "id": "339a6e83-2631-4805-94aa-efd585fc0dc9",
+              "name": "date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "d60d2cd1-da77-4182-8d7f-f0cec4e27b5c",
+              "name": "body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "7f28d492-27e6-4454-a8bf-45d12d102124",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "361be1ad-e252-4d7a-b240-295ab4885248",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=C:/Users/AhsanYasirSharar/n8n-files/EmailBody_{{ $now.format('yyyy-MM-dd_HH-mm-ss') }}.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        0
+      ],
+      "id": "82c14690-5ba1-4481-bf99-cd42bf52d699",
+      "name": "Read/Write Files from Disk"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "91f399ec-4f7f-460f-8ed8-276a300c07e5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "jz3K927lK094uaIM",
+  "tags": []
+}
