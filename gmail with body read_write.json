@@ -1,0 +1,378 @@
+{
+  "name": "gmail with body read/write",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "simple": false,
+        "filters": {
+          "q": "  is:unread has:attachment filename:xlsx"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "865acdf1-7400-4f2f-a1d8-39830fb447b8",
+      "name": "Get many messages",
+      "webhookId": "ecf73056-9d61-4416-b6cb-0e7c78e4cb03",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "1277bb63-23b3-4e99-b1fb-76fd1adf2139",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "sendTo": "shararbic3@gmail.com",
+        "subject": "Test",
+        "message": "Please find the file attached.",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "5eef51d6-760c-4fa9-9dcf-28ad5f9d727c",
+      "name": "Send a message",
+      "webhookId": "abcaf02e-e5a8-481d-97a5-2c8b95325a7d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Get many messages').first().json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "334f277c-6a93-4e78-ba05-4afb666cc359",
+      "name": "Mark a message as read",
+      "webhookId": "7c081560-bfac-4084-9e61-597aea3e2868",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "61812893-a23c-4c3f-bb23-46216f196591",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "=attachment_0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        0
+      ],
+      "id": "284b0b78-89a1-4d67-80fe-0c5a4f313710",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=C:\\Users\\AhsanYasirSharar\\n8n-files/Processed_{{ $now.format('yyyy-MM-dd_HH-mm-ss') }}.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        0
+      ],
+      "id": "f58f8670-3222-4c5e-9d72-e6402a74e68b",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -400
+      ],
+      "id": "0d07b5a6-dd32-4adc-ae33-bbe493293199",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "q": "in:inbox has:attachment -label:with-attachments"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        -400
+      ],
+      "id": "eab25099-c4c2-43b6-ac11-ec757717fe21",
+      "name": "Get many messages1",
+      "webhookId": "96f69458-3eef-48f5-a81c-83af41ec16be",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_1"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        -400
+      ],
+      "id": "4c18931c-42e2-41cc-ac6c-a8d948095bfd",
+      "name": "Add label to message",
+      "webhookId": "761f8c72-0f54-449c-9ad4-2be7f61f7a68",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "q": "in:inbox -has:attachment -label:without-attachments"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        -400
+      ],
+      "id": "5b6fd021-aaa2-4ca4-807a-1e526214362b",
+      "name": "Get many messages3",
+      "webhookId": "d638cae4-1a29-453f-89dc-e5b9c2bc2bd2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_2"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        -400
+      ],
+      "id": "3c28407f-4199-46ac-86c9-1e5a3ec5a482",
+      "name": "Add label to message2",
+      "webhookId": "ec77b8c6-075e-4765-9679-f53ac55bc789",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages1": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages3": {
+      "main": [
+        [
+          {
+            "node": "Add label to message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message2": {
+      "main": [
+        [
+          {
+            "node": "Get many messages1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5b993db8-50a9-492d-9d3f-7933e244a48c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "IALWu4SJMIYZxm7P",
+  "tags": []
+}
