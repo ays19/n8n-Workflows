@@ -1,99 +1,172 @@
-# 🔄 n8n Workflow Collection
+# n8n Workflow Collection
 
-A curated collection of production-ready **n8n automation workflows** covering Gmail processing and RPA (Robotic Process Automation) integration with UiPath.
+> A hands-on collection of real-world **automation workflows** built with [n8n](https://n8n.io) — covering AI-powered email management, lead capture, Gmail processing, and RPA integration with UiPath.
 
-> **n8n** is an open-source, self-hostable workflow automation tool that connects apps, APIs, and services with a visual node-based editor.
-
----
-
-## 📋 Table of Contents
-
-- [Workflows](#-workflows)
-  - [Gmail with Attachment — Read & Write](#1-gmail-with-attachment--read--write)
-  - [Gmail with Body — Read & Write](#2-gmail-with-body--read--write)
-  - [n8n Trigger for UiPath](#3-n8n-trigger-for-uipath)
-- [Getting Started](#-getting-started)
-- [Prerequisites](#-prerequisites)
-- [How to Import a Workflow](#-how-to-import-a-workflow)
-- [Project Structure](#-project-structure)
-- [Use Cases](#-use-cases)
-- [Contributing](#-contributing)
+Whether you're just learning automation, hiring for automation skills, or building production pipelines — this repo shows practical, working examples you can import and run today.
 
 ---
 
-## 📦 Workflows
+## What is n8n?
 
-### 1. Gmail with Attachment — Read & Write
+**n8n** (pronounced *"n-eight-n"*) is an open-source workflow automation tool. Think of it like a visual programming environment where you connect apps, APIs, and services using drag-and-drop "nodes" — no heavy coding required.
+
+- ✅ Free & self-hostable
+- ✅ 400+ built-in integrations (Gmail, Sheets, Slack, HTTP, databases…)
+- ✅ Supports AI/LLM nodes (OpenAI, Gemini, etc.)
+- ✅ Can trigger UiPath robots, run shell commands, and more
+
+---
+
+## 📂 Workflows at a Glance
+
+| # | Workflow | Trigger | What it does |
+|---|---|---|---|
+| 1 | [AI Email Inbox Sorter](#1-ai-email-inbox-sorter) | Every hour (auto) | Reads new Gmail emails → uses Gemini AI to categorize them → applies Gmail labels |
+| 2 | [Form Lead → Sheets + Email Responder](#2-form-lead--sheets--email-responder) | Web form submission | Captures a lead from a contact form → saves to Google Sheets → sends a confirmation email |
+| 3 | [Gmail Attachment Extractor](#3-gmail-attachment-extractor) | Manual | Fetches emails → extracts attachments → saves files to disk |
+| 4 | [Gmail Body Processor](#4-gmail-body-processor) | Schedule or Manual | Reads email bodies → extracts data → labels, marks as read, sends replies |
+| 5 | [n8n → UiPath RPA Trigger](#5-n8n--uipath-rpa-trigger) | Manual | Triggers a UiPath robot via a shell command from within n8n |
+
+---
+
+## 🔍 Workflow Details
+
+### 1. AI Email Inbox Sorter
+
+**File:** [`Email inbox.json`](./Email%20inbox.json)
+
+**What it does in plain English:**
+Every hour, this workflow checks your Gmail for new emails. It sends each email's sender, subject, and body to Google Gemini (an AI model). The AI reads it and decides which category it belongs to. Then n8n automatically applies the right Gmail label — so your inbox stays organized without you lifting a finger.
+
+**Flow Diagram:**
+```
+Gmail Trigger (every hour)
+    → Google Gemini AI (categorizes the email)
+        → Switch (routes based on category)
+            → Apply Gmail Label (Promotions / Socials / Personal / Sales / Misc)
+```
+
+**AI Categories:**
+
+| Category | Description | Examples |
+|---|---|---|
+| **Promotions** | Marketing emails, offers, discounts | "50% Off Our New Course" |
+| **Socials** | Social media notifications | "YouTube: New comment on your video" |
+| **Personal** | Time-sensitive or personal messages | "Can we talk today?" |
+| **Sales** | Client deals, proposals, contracts | "Signed Contract Attached" |
+| **Misc** | Everything else | — |
+
+**Skills demonstrated:** Gmail API, LLM/AI integration (Google Gemini), conditional routing, label management, event-driven scheduling.
+
+---
+
+### 2. Form Lead → Sheets + Email Responder
+
+**File:** [`Form Lead to Sheets + Email Responder.json`](./Form%20Lead%20to%20Sheets%20%2B%20Email%20Responder.json)
+
+**What it does in plain English:**
+A "Contact Us / Get a Quote" web form is hosted by n8n. When someone fills it in (Name, Email, Service, Budget), the workflow instantly saves their details to a Google Sheet and sends them a confirmation email — all automatically.
+
+**Flow Diagram:**
+```
+Form Submission (web form)
+    → Google Sheets (append new row to lead tracker)
+    → Gmail (send confirmation email to the lead)
+```
+
+**Form fields collected:**
+
+| Field | Type | Required |
+|---|---|---|
+| Full Name | Text | ✅ |
+| Email | Email | ✅ |
+| Service | Dropdown (SEO / ADS) | ✅ |
+| Budget | Number | ✅ |
+
+**Skills demonstrated:** Webhook/form triggers, Google Sheets integration, Gmail sending, lead management automation.
+
+---
+
+### 3. Gmail Attachment Extractor
 
 **File:** [`gmail with attach read_write.json`](./gmail%20with%20attach%20read_write.json)
 
-Fetches emails from Gmail, extracts attachment data, transforms it, and saves the files to disk.
+**What it does in plain English:**
+Run this manually whenever you want to pull email attachments out of Gmail and save them as files on your computer or server. Useful for archiving invoices, reports, or any file-based emails.
 
-**Flow:**
-
+**Flow Diagram:**
 ```
-Manual Trigger → Get Gmail Messages → Edit Fields → Convert to File → Read/Write Files from Disk
+Manual Trigger
+    → Fetch Gmail Messages
+        → Edit/Map Fields
+            → Convert Attachment to File
+                → Save File to Disk
 ```
 
-| Node | Purpose |
+| Node | What it does |
 |---|---|
-| `Manual Trigger` | Starts the workflow on demand |
-| `Get many messages` | Fetches emails from Gmail inbox |
-| `Edit Fields` | Maps and transforms email metadata |
-| `Convert to File` | Converts attachment data to a binary file |
+| `Manual Trigger` | You click "Run" to start it |
+| `Get many messages` | Pulls emails from Gmail inbox |
+| `Edit Fields` | Reshapes and maps the data |
+| `Convert to File` | Turns attachment data into a usable binary file |
 | `Read/Write Files from Disk` | Saves the file locally |
 
-**Good for:** Archiving email attachments, feeding files into downstream automation pipelines.
+**Skills demonstrated:** Gmail API, binary file handling, data transformation, local file I/O.
 
 ---
 
-### 2. Gmail with Body — Read & Write
+### 4. Gmail Body Processor
 
 **File:** [`gmail with body read_write.json`](./gmail%20with%20body%20read_write.json)
 
-A more comprehensive Gmail automation that reads email bodies, extracts structured data from files, applies labels, marks emails as read, and can send reply emails — all on a schedule.
+**What it does in plain English:**
+A more advanced Gmail workflow that runs on a schedule. It reads email bodies, extracts structured data (e.g., from attached spreadsheets or CSVs), saves it locally, and then keeps your inbox tidy by labelling emails, marking them as read, and even sending replies.
 
-**Flow:**
-
+**Flow Diagram:**
 ```
 Schedule Trigger ─┐
-Manual Trigger  ──┤→ Get Gmail Messages → Extract from File → Read/Write Files
-                  │→ Add Label → Mark as Read → Send Message
+Manual Trigger  ──┴→ Fetch Gmail Messages
+                         → Extract Data from File
+                         → Save to Disk
+                         → Apply Label
+                         → Mark as Read
+                         → Send Reply Email
 ```
 
-| Node | Purpose |
+| Node | What it does |
 |---|---|
-| `Schedule Trigger` | Runs automatically on a defined interval |
-| `Manual Trigger` | Runs on demand for testing |
-| `Get many messages` (×3) | Fetches emails with various filters |
-| `Extract from File` | Parses structured data from file content |
-| `Read/Write Files from Disk` | Persists extracted content locally |
-| `Add label to message` (×2) | Organizes emails with Gmail labels |
-| `Mark a message as read` | Marks processed emails as read |
-| `Send a message` | Sends reply or follow-up emails |
+| `Schedule Trigger` | Runs automatically (e.g., every hour) |
+| `Manual Trigger` | Run on demand for testing |
+| `Get many messages` | Fetches emails with filters |
+| `Extract from File` | Parses data from attachments |
+| `Read/Write Files from Disk` | Stores extracted content |
+| `Add label to message` | Organises Gmail with labels |
+| `Mark a message as read` | Cleans up processed emails |
+| `Send a message` | Sends a reply or follow-up |
 
-**Good for:** Email triage automation, data extraction pipelines, inbox-zero workflows.
+**Skills demonstrated:** Scheduled automation, Gmail full lifecycle management, file parsing, inbox-zero patterns.
 
 ---
 
-### 3. n8n Trigger for UiPath
+### 5. n8n → UiPath RPA Trigger
 
 **File:** [`n8n Trigger UIipath.json`](./n8n%20Trigger%20UIipath.json)
 
-Bridges n8n with **UiPath RPA** by triggering a UiPath robot or process via a shell command — combining low-code automation with enterprise RPA.
+**What it does in plain English:**
+This workflow acts as a bridge between n8n and **UiPath** — a leading Robotic Process Automation (RPA) platform. When triggered, n8n runs a system shell command that launches a UiPath robot. This lets you kick off desktop automation (e.g., filling a form, processing files in legacy software) from within a broader n8n pipeline.
 
-**Flow:**
-
+**Flow Diagram:**
 ```
-Manual Trigger → Execute Command (UiPath)
+Manual Trigger
+    → Execute Command (shell → launches UiPath Robot)
 ```
 
-| Node | Purpose |
+| Node | What it does |
 |---|---|
 | `Manual Trigger` | Starts the workflow on demand |
-| `Execute Command` | Runs a system command to invoke UiPath |
+| `Execute Command` | Runs a shell command to invoke UiPath |
 
-**Good for:** Triggering UiPath attended/unattended robots from n8n, orchestrating RPA as part of a larger automation chain.
+**Skills demonstrated:** RPA integration, n8n ↔ UiPath bridge, shell command execution, hybrid automation (low-code + RPA).
 
 ---
 
@@ -103,22 +176,31 @@ Manual Trigger → Execute Command (UiPath)
 
 | Requirement | Details |
 |---|---|
-| **n8n** | v1.0+ (self-hosted or [n8n.cloud](https://n8n.cloud)) |
+| **n8n** | v1.0+ — [Install guide](https://docs.n8n.io/hosting/) or use [n8n.cloud](https://n8n.cloud) |
 | **Gmail Account** | With OAuth2 credentials configured in n8n |
-| **UiPath** | UiPath Robot installed (for the UiPath workflow only) |
+| **Google Sheets** | With a service account or OAuth2 credentials (for workflow 2) |
+| **Google Gemini API Key** | Free tier available at [Google AI Studio](https://aistudio.google.com) (for workflow 1) |
+| **UiPath Robot** | Installed locally (for workflow 5 only) |
+
+---
 
 ### How to Import a Workflow
 
-1. Open your n8n instance in the browser.
-2. Click **"Add Workflow"** → **"Import from File"**.
-3. Select any `.json` file from this repository.
-4. Configure credentials (Gmail OAuth2, etc.) in the credential manager.
-5. Click **"Execute Workflow"** to test.
+> **New to n8n?** Follow these steps — it takes about 2 minutes.
 
-> **Tip:** You can also import directly via the n8n CLI:
-> ```bash
-> n8n import:workflow --input="gmail with attach read_write.json"
-> ```
+1. **Open n8n** in your browser (e.g., `http://localhost:5678`).
+2. Click **"Add Workflow"** in the top-right corner.
+3. Click the **menu (⋮)** → **"Import from File"**.
+4. Select any `.json` file from this repository.
+5. Open the **Credentials** panel and connect your accounts (Gmail, Sheets, etc.).
+6. Click **"Execute Workflow"** to test it.
+
+**Or use the n8n CLI:**
+```bash
+n8n import:workflow --input="Email inbox.json"
+```
+
+> ⚠️ **Important:** The `.json` files do not contain any passwords or API keys. You must add your own credentials inside n8n after importing.
 
 ---
 
@@ -126,23 +208,27 @@ Manual Trigger → Execute Command (UiPath)
 
 ```
 n8n-Workflows/
-├── gmail with attach read_write.json   # Gmail attachment extraction workflow
-├── gmail with body read_write.json     # Gmail body processing workflow
-├── n8n Trigger UIipath.json            # UiPath RPA trigger workflow
+├── Email inbox.json                          # AI-powered email categorization
+├── Form Lead to Sheets + Email Responder.json # Lead capture form → Sheets + Email
+├── gmail with attach read_write.json         # Gmail attachment extraction
+├── gmail with body read_write.json           # Gmail body processing + triage
+├── n8n Trigger UIipath.json                  # UiPath RPA trigger
 └── README.md
 ```
 
 ---
 
-## 💡 Use Cases
+## 💡 Real-World Use Cases
 
-| Scenario | Workflow |
+| Scenario | Workflow to Use |
 |---|---|
-| Auto-save email attachments to disk | Gmail with Attachment |
-| Parse invoice/report emails on a schedule | Gmail with Body |
-| Label and archive processed emails | Gmail with Body |
-| Trigger a UiPath bot from a web event | n8n Trigger for UiPath |
-| Chain RPA + API automation in one pipeline | n8n Trigger for UiPath |
+| Auto-sort your inbox with AI, zero effort | AI Email Inbox Sorter |
+| Capture website leads into a spreadsheet automatically | Form Lead → Sheets |
+| Auto-reply to leads when they submit a contact form | Form Lead → Sheets |
+| Archive email attachments (invoices, reports) to disk | Gmail Attachment Extractor |
+| Parse and store data from email attachments on a schedule | Gmail Body Processor |
+| Trigger a UiPath bot as part of a larger automation | n8n → UiPath Trigger |
+| Chain RPA + API automation in one pipeline | n8n → UiPath Trigger |
 
 ---
 
@@ -150,16 +236,17 @@ n8n-Workflows/
 
 Contributions are welcome! To add a new workflow:
 
-1. Export your workflow from n8n as JSON (**⋮ Menu → Download**).
-2. Remove any sensitive credentials from the file before committing.
-3. Add a new section in this README describing the workflow's nodes and purpose.
-4. Open a pull request.
+1. Build and test your workflow in n8n.
+2. Export it: **☰ Menu → Download** — this saves a `.json` file.
+3. **Remove any hardcoded credentials** from the JSON before committing.
+4. Add a new section to this README following the same format.
+5. Open a pull request with a short description of what the workflow does.
 
 ---
 
 ## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is open-source under the [MIT License](LICENSE).
 
 ---
 
