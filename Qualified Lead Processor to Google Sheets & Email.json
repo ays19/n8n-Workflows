@@ -1,0 +1,366 @@
+{
+  "name": "Qualified Lead Processor to Google Sheets & Email",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ac39af37-9f1b-4ca1-b8ac-7f806f122dc8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a77e361a-510a-41da-b22e-ae5b046fa6f1",
+              "name": "Lead",
+              "value": " [    {       \"row_number\":  2,       \"Full Name\":  \"AHSAN YASIR SHARAR\",       \"Email\":  \"sahsanyasir@gmail.com\",       \"Service\":  \"SEO\",       \"Budget\":  1000,       \"Rejected\":  \"\",       \"Contacted\":  \"\",       \"Date\":  \"2026-10-31T00:52:36.450-04:00\"    }, \n{\n  \n  \n\"row_number\": \n3,\n  \n  \n\"Full Name\": \n\"Sifat Hasan\",\n  \n  \n\"Email\": \n\"sifat@gmail.com\",\n  \n  \n\"Service\": \n\"ADS\",\n  \n  \n\"Budget\": \n500,\n  \n  \n\"Rejected\": \n\"\",\n  \n  \n\"Contacted\": \n\"\",\n  \n  \n\"Date\": \n\"2026-10-31T00:58:01.895-04:00\"\n  \n},\n \n{\n  \n  \n\"row_number\": \n4,\n  \n  \n\"Full Name\": \n\"Sifat Hasan\",\n  \n  \n\"Email\": \n\"sifat@gmail.com\",\n  \n  \n\"Service\": \n\"ADS\",\n  \n  \n\"Budget\": \n500,\n  \n  \n\"Rejected\": \n\"\",\n  \n  \n\"Contacted\": \n\"\",\n  \n  \n\"Date\": \n\"2026-10-31T00:58:01.895-04:00\"\n  \n},\n  \n{\n  \n  \n\"row_number\": \n5,\n  \n  \n\"Full Name\": \n\"Sharar\",\n  \n  \n\"Email\": \n\"sahsanyasir@gmail.com\",\n  \n  \n\"Service\": \n\"SEO\",\n  \n  \n\"Budget\": \n1200,\n  \n  \n\"Rejected\": \n\"\",\n  \n  \n\"Contacted\": \n\"\",\n  \n  \n\"Date\": \n\"2026-10-31T01:14:08.829-04:00\"\n  \n},\n\n{\n  \n  \n\"row_number\": \n6,\n  \n  \n\"Full Name\": \n\"Musa Obayed\",\n  \n  \n\"Email\": \n\"shararbic3@gmail.com\",\n  \n  \n\"Service\": \n\"SEO\",\n  \n  \n\"Budget\": \n1300,\n  \n  \n\"Rejected\": \nfalse,\n  \n  \n\"Contacted\": \ntrue,\n  \n  \n\"Date\": \n\"2026-10-31T01:33:46.077-04:00\"\n  \n}\n]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4f35b237-da78-4644-86d3-6889f6815879",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Lead",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "505e8e6d-5d41-4604-9bbb-de0d845c6078",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ",
+          "mode": "list",
+          "cachedResultName": "n8n Lead Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 310127419,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit#gid=310127419"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Full Name": "={{ $json['Full Name'] }}",
+            "Email": "={{ $json.Email }}",
+            "Service": "={{ $json.Service }}",
+            "Budget": "={{ $json.Budget }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rejected",
+              "displayName": "Rejected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contacted",
+              "displayName": "Contacted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "id": "30215f3a-943d-46c5-8fba-6703cacfbae0",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eRlRdhWuVOaIBEF3",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ca599999-8f38-4620-bf9c-20f59fcc1350",
+              "leftValue": "={{ $json.Budget }}",
+              "rightValue": 1000,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "06d3bcda-6cc2-4676-8000-6128690ef99b",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "Leads",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "6f627110-7d49-4f9e-8edd-52e464c5dc97",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item (the one containing the Leads array)\nconst input = $input.first().json;\n\n// Extract the Leads array\nconst leads = input.Leads || [];\n\n// Sort the leads from highest to lowest Budget\nconst sortedLeads = leads.sort((a, b) => Number(b.Budget) - Number(a.Budget));\n\n// Return the data in the same structure\nreturn [\n  {\n    json: {\n      Leads: sortedLeads\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "b96270cd-e356-4f4e-9330-bbe0573e9a82",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "sahsanyasir@gmail.com",
+        "subject": "New Leads",
+        "emailType": "text",
+        "message": "=Here's the leads for the day\n{{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        0
+      ],
+      "id": "8f09d853-fd36-4010-a8fe-ebb48060437a",
+      "name": "Send a message",
+      "webhookId": "d8edb018-d925-4a0d-a361-399b08ed80d3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vFYzWkY32LYPkJHq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item\nconst input = $input.first().json;\n\n// Extract the Leads array\nconst leads = input.Leads || [];\n\n// Build a plain text summary dynamically\nconst text = leads.map(lead => {\n  return `Full Name: ${lead[\"Full Name\"]}\nEmail: ${lead.Email}\nService: ${lead.Service}\nBudget: ${lead.Budget}\n----------------------------`;\n}).join('\\n');\n\n// Return as a single text field\nreturn [\n  {\n    json: {\n      text: text\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "9fe5fe76-c133-43ee-b1b3-6e78aa97ab60",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c0d0d5d5-db0d-48fd-a6c6-bbce25cdee91",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "0IskEOsReMQeRyBW",
+  "tags": []
+}
