@@ -1,6 +1,6 @@
 # n8n Workflow Collection
 
-> A hands-on collection of real-world **automation workflows** built with [n8n](https://n8n.io) — covering AI-powered email management, lead capture, Gmail processing, and RPA integration with UiPath.
+> A hands-on collection of real-world **automation workflows** built with [n8n](https://n8n.io) — covering AI-powered email management, lead qualification & routing, Apify web scraping, Telegram multimodal invoice processing, and RPA integration with UiPath.
 
 Whether you're just learning automation, hiring for automation skills, or building production pipelines — this repo shows practical, working examples you can import and run today.
 
@@ -11,9 +11,9 @@ Whether you're just learning automation, hiring for automation skills, or buildi
 **n8n** (pronounced *"n-eight-n"*) is an open-source workflow automation tool. Think of it like a visual programming environment where you connect apps, APIs, and services using drag-and-drop "nodes" — no heavy coding required.
 
 - ✅ Free & self-hostable
-- ✅ 400+ built-in integrations (Gmail, Sheets, Slack, HTTP, databases…)
-- ✅ Supports AI/LLM nodes (OpenAI, Gemini, etc.)
-- ✅ Can trigger UiPath robots, run shell commands, and more
+- ✅ 400+ built-in integrations (Gmail, Sheets, Slack, Telegram, Apify, HTTP, databases…)
+- ✅ Supports AI/LLM nodes (Google Gemini, OpenAI, LangChain)
+- ✅ Can trigger UiPath robots, run shell commands, and custom JavaScript
 
 ---
 
@@ -26,6 +26,9 @@ Whether you're just learning automation, hiring for automation skills, or buildi
 | 3 | [Gmail Attachment Extractor](#3-gmail-attachment-extractor) | Manual | Fetches emails → extracts attachments → saves files to disk |
 | 4 | [Gmail Body Processor](#4-gmail-body-processor) | Schedule or Manual | Reads email bodies → extracts data → labels, marks as read, sends replies |
 | 5 | [n8n → UiPath RPA Trigger](#5-n8n--uipath-rpa-trigger) | Manual | Triggers a UiPath robot via a shell command from within n8n |
+| 6 | [Qualified Lead Processor & Email Digest](#6-qualified-lead-processor--email-digest) | Manual or Scheduled | Filters high-value leads ($1,000+) → saves to Sheets → sorts by budget → emails daily digest |
+| 7 | [Google Maps Lead Scraper & Sheet Sync](#7-google-maps-lead-scraper--sheet-sync) | Schedule (auto) | Triggers Apify Google Maps scraper → filters high-rated leads (4.8+★) → batch upserts to Sheets |
+| 8 | [Telegram Invoice Data Extractor](#8-telegram-invoice-data-extractor) | Telegram message (file) | Receives PDF/Image invoices via Telegram → extracts text with Gemini AI → logs line items to Sheets → replies on Telegram |
 
 ---
 
@@ -170,17 +173,125 @@ Manual Trigger
 
 ---
 
+### 6. Qualified Lead Processor & Email Digest
+
+**File:** [`Qualified Lead Processor to Google Sheets & Email.json`](./Qualified%20Lead%20Processor%20to%20Google%20Sheets%20%26%20Email.json)
+
+**What it does in plain English:**
+Takes a list of incoming leads and filters out low-budget inquiries, qualifying only leads with a budget of $1,000 or more. Qualified leads are saved to Google Sheets. The workflow then aggregates the leads, sorts them from highest to lowest budget with custom JavaScript, builds a clean text summary, and emails a prioritized leads digest to your sales inbox.
+
+**Flow Diagram:**
+```
+Manual / Trigger
+    → Split Out (individual lead records)
+        → Filter (Budget >= $1,000)
+            → Google Sheets (append qualified lead row)
+                → Aggregate (combine items)
+                    → JavaScript Code (sort descending by budget)
+                        → JavaScript Code (format digest text)
+                            → Gmail (send leads digest email)
+```
+
+| Node | What it does |
+|---|---|
+| `Manual Trigger` | Runs on demand or scheduled |
+| `Split Out` | Unpacks lead arrays into separate items |
+| `Filter` | Keeps only leads with budget $\ge$ 1,000 |
+| `Google Sheets` | Appends qualified leads to tracking sheet |
+| `Aggregate` | Collects processed items into a single array |
+| `JavaScript Code (Sort)` | Sorts qualified leads by budget descending |
+| `JavaScript Code (Format)` | Generates clean summary message |
+| `Gmail (Send Message)` | Sends daily leads report to the sales team |
+
+**Skills demonstrated:** Lead qualification logic, array splitting & re-aggregation, custom JavaScript data sorting & formatting, Google Sheets API, automated Gmail reporting.
+
+---
+
+### 7. Google Maps Lead Scraper & Sheet Sync
+
+**File:** [`Google Maps Cleaner Lead Scraper & Sheet Sync.json`](./Google%20Maps%20Cleaner%20Lead%20Scraper%20%26%20Sheet%20Sync.json)
+
+**What it does in plain English:**
+Runs on a schedule to gather high-quality local business leads. It triggers an Apify Google Maps scraper actor (targeting niches such as local cleaners in Toronto), filters for high-reputation businesses (rating $\ge$ 4.8), and iterates through them in batches. For each business, it upserts (appends or updates based on website URL) details into Google Sheets, with built-in pacing pauses to prevent API rate limits.
+
+**Flow Diagram:**
+```
+Schedule Trigger (interval)
+    → Apify Actor (Google Maps Scraper)
+        → Filter (totalScore >= 4.8)
+            → Loop Over Items (batch iterator)
+                → Google Sheets (upsert by Website)
+                    → Wait (rate-limiting delay) ──┐
+                         └── (loop back to next item)
+```
+
+| Node | What it does |
+|---|---|
+| `Schedule Trigger` | Runs on a preset interval automatically |
+| `Apify Actor` | Executes Google Places crawler actor & returns dataset |
+| `Filter` | Filters out low-rated businesses (Score $\ge$ 4.8) |
+| `Loop Over Items` | Splits items into manageable batches |
+| `Google Sheets` | Appends or updates row matched by website domain |
+| `Wait` | Introduces paced delay between requests |
+
+**Skills demonstrated:** Apify Actor cloud integration, web scraping & lead extraction, data cleansing & quality thresholds, batch looping with delay pacing, Google Sheets upsert logic.
+
+---
+
+### 8. Telegram Invoice Data Extractor
+
+**File:** [`Invoice Data Extractor_ Telegram to Sheets.json`](./Invoice%20Data%20Extractor_%20Telegram%20to%20Sheets.json)
+
+**What it does in plain English:**
+Turns Telegram into an AI receipt & invoice intake system. When an invoice document (PDF) or image (PNG) is sent to your Telegram bot, n8n downloads the file and uses Google Gemini AI to read, parse, and structure the data (merchant name, line items, prices, taxes, total, and currency). It standardizes the values, logs every itemized row to Google Sheets, and sends a confirmation reply right back to the user on Telegram.
+
+**Flow Diagram:**
+```
+Telegram Trigger (document/image received)
+    → Telegram (download file)
+        → Switch (by MIME type)
+             ├── PDF  → Extract Text → Gemini 3.5 Flash Lite ──┐
+             └── PNG  → Gemini Vision (OCR) → Gemini 3.5 ──────┤
+                                                               ↓
+                                                      JavaScript Normalization
+                                                               ↓
+                                                      Split Out Line Items
+                                                               ↓
+                                                      Google Sheets (append rows)
+                                                               ↓
+                                                      Aggregate & Telegram Reply
+```
+
+| Node | What it does |
+|---|---|
+| `Telegram Trigger` | Fires when user sends a file/message |
+| `Telegram (Get a file)` | Downloads binary document or image |
+| `Switch` | Routes between PDF documents and PNG images |
+| `Extract from File` | Pulls raw text from PDF files |
+| `Gemini (Analyze image)` | Vision OCR extraction for receipts/images |
+| `Gemini (Message model)` | Extracts strict structured JSON schema |
+| `JavaScript Code` | Parses JSON, normalizes currencies & cleans numeric values |
+| `Split Out` | Expands line items into individual row entries |
+| `Google Sheets` | Appends line items to "Line Items" tab |
+| `Telegram (Send message)` | Notifies user that processing completed |
+
+**Skills demonstrated:** Telegram Bot API, Multimodal AI & OCR (Google Gemini Flash Lite), PDF text extraction, structured JSON parsing, currency/number normalization in JavaScript, Google Sheets data logging, bidirectional bot chat.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-| Requirement | Details |
-|---|---|
-| **n8n** | v1.0+ — [Install guide](https://docs.n8n.io/hosting/) or use [n8n.cloud](https://n8n.cloud) |
-| **Gmail Account** | With OAuth2 credentials configured in n8n |
-| **Google Sheets** | With a service account or OAuth2 credentials (for workflow 2) |
-| **Google Gemini API Key** | Free tier available at [Google AI Studio](https://aistudio.google.com) (for workflow 1) |
-| **UiPath Robot** | Installed locally (for workflow 5 only) |
+| Requirement | Details | Used In |
+|---|---|---|
+| **n8n** | v1.0+ — [Install guide](https://docs.n8n.io/hosting/) or use [n8n.cloud](https://n8n.cloud) | All workflows |
+| **Gmail Account** | OAuth2 credentials configured in n8n | Workflows 1, 2, 3, 4, 6 |
+| **Google Sheets** | OAuth2 or service account credentials | Workflows 2, 6, 7, 8 |
+| **Google Gemini API Key** | Free tier available at [Google AI Studio](https://aistudio.google.com) | Workflows 1, 8 |
+| **Telegram Bot Token** | Created via [@BotFather](https://t.me/botfather) | Workflow 8 |
+| **Apify API Token** | Account at [Apify](https://apify.com) | Workflow 7 |
+| **UiPath Robot** | Installed locally | Workflow 5 |
 
 ---
 
@@ -192,7 +303,7 @@ Manual Trigger
 2. Click **"Add Workflow"** in the top-right corner.
 3. Click the **menu (⋮)** → **"Import from File"**.
 4. Select any `.json` file from this repository.
-5. Open the **Credentials** panel and connect your accounts (Gmail, Sheets, etc.).
+5. Open the **Credentials** panel and connect your accounts (Gmail, Sheets, Telegram, Apify, etc.).
 6. Click **"Execute Workflow"** to test it.
 
 **Or use the n8n CLI:**
@@ -208,11 +319,14 @@ n8n import:workflow --input="Email inbox.json"
 
 ```
 n8n-Workflows/
-├── Email inbox.json                          # AI-powered email categorization
-├── Form Lead to Sheets + Email Responder.json # Lead capture form → Sheets + Email
-├── gmail with attach read_write.json         # Gmail attachment extraction
-├── gmail with body read_write.json           # Gmail body processing + triage
-├── n8n Trigger UIipath.json                  # UiPath RPA trigger
+├── Email inbox.json                                      # AI-powered email categorization
+├── Form Lead to Sheets + Email Responder.json             # Lead capture form → Sheets + Email
+├── gmail with attach read_write.json                     # Gmail attachment extraction
+├── gmail with body read_write.json                       # Gmail body processing + triage
+├── Google Maps Cleaner Lead Scraper & Sheet Sync.json     # Apify scraper → Sheets sync
+├── Invoice Data Extractor_ Telegram to Sheets.json       # Telegram bot + Gemini invoice OCR → Sheets
+├── n8n Trigger UIipath.json                              # UiPath RPA trigger
+├── Qualified Lead Processor to Google Sheets & Email.json# High-ticket lead filter & digest email
 └── README.md
 ```
 
@@ -228,7 +342,9 @@ n8n-Workflows/
 | Archive email attachments (invoices, reports) to disk | Gmail Attachment Extractor |
 | Parse and store data from email attachments on a schedule | Gmail Body Processor |
 | Trigger a UiPath bot as part of a larger automation | n8n → UiPath Trigger |
-| Chain RPA + API automation in one pipeline | n8n → UiPath Trigger |
+| Filter high-value leads and receive a sorted email digest | Qualified Lead Processor |
+| Scrape vetted local business leads from Google Maps automatically | Google Maps Lead Scraper |
+| Process PDF and image receipts sent via Telegram into Google Sheets | Telegram Invoice Data Extractor |
 
 ---
 
