@@ -1,0 +1,1440 @@
+{
+  "name": "Google Maps Cleaner Lead Scraper & Sheet Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bf355066-d631-4c0d-907a-d49a546aa93b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorId": {
+          "__rl": true,
+          "value": "nwua9Gu5YrADL7ZDj",
+          "mode": "list",
+          "cachedResultName": "Google Maps Scraper (compass/crawler-google-places)",
+          "cachedResultUrl": "https://console.apify.com/actors/nwua9Gu5YrADL7ZDj/input"
+        },
+        "customBody": "{\n    \"enableCompetitorAnalysis\": false,\n    \"includeWebResults\": false,\n    \"language\": \"en\",\n    \"locationQuery\": \"Toronto, Canada\",\n    \"maxCompetitorsToAnalyze\": 30,\n    \"maxCrawledPlacesPerSearch\": 10,\n    \"maximumLeadsEnrichmentRecords\": 0,\n    \"scrapeContacts\": false,\n    \"scrapeDirectories\": false,\n    \"scrapeImageAuthors\": false,\n    \"scrapeOrderOnline\": false,\n    \"scrapePlaceDetailPage\": false,\n    \"scrapeReviewsPersonalData\": true,\n    \"scrapeSocialMediaProfiles\": {\n        \"facebooks\": false,\n        \"instagrams\": false,\n        \"tiktoks\": false,\n        \"twitters\": false,\n        \"youtubes\": false\n    },\n    \"scrapeTableReservationProvider\": false,\n    \"searchStringsArray\": [\n        \"toronto cleaner\"\n    ],\n    \"skipClosedPlaces\": false,\n    \"verifyLeadsEnrichmentEmails\": false\n}"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3e99674d-0ce3-4802-85e5-81b98feb93e8",
+      "name": "Run an Actor and get dataset",
+      "credentials": {
+        "apifyApi": {
+          "id": "Z0EVhzBEic36X091",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ",
+          "mode": "list",
+          "cachedResultName": "n8n Lead Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 310127419,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit#gid=310127419"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Title": "={{ $json.title }}",
+            "Niche": "={{ $json.categoryName }}",
+            "Website": "={{ $json.website }}",
+            "Phone": "={{ $json.phone ? $json.phone.replace(/\\+/g, '') : '' }}",
+            "Score": "={{ $json.totalScore }}",
+            "Review count": "={{ $json.reviewsCount }}"
+          },
+          "matchingColumns": [
+            "Website"
+          ],
+          "schema": [
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Niche",
+              "displayName": "Niche",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Review count",
+              "displayName": "Review count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "id": "515d6119-a79b-464d-bdfb-fa6232515e6b",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eRlRdhWuVOaIBEF3",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "e17b5a88-2b2b-411a-b746-a1ebd3029047",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "6a486fcc-2c47-4bf3-8b62-6a90226bf0fa",
+      "name": "Wait",
+      "webhookId": "38230c37-c3a5-4b01-956b-b683bbdd445b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30a2193d-6294-47a8-8125-e9daf1028dde",
+              "leftValue": "={{ $json.totalScore }}",
+              "rightValue": 4.8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "45429e72-9c1a-418d-8186-88cc4d07d283",
+      "name": "Filter"
+    }
+  ],
+  "pinData": {
+    "Run an Actor and get dataset": [
+      {
+        "json": {
+          "title": "Toronto Drapery Cleaning",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "Dry cleaner",
+          "address": "1110 Finch Ave W, North York, ON M3J 3J4, Canada",
+          "neighborhood": "North York",
+          "street": "1110 Finch Ave W",
+          "city": null,
+          "postalCode": "M3J 3J4",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://torontodraperycleaning.ca/",
+          "phone": "+1 416-890-9495",
+          "phoneUnformatted": "+14168909495",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7677445,
+            "lng": -79.4741632
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.9,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJq6pq8gYuK4gRikI02KKiwCY",
+          "categories": [
+            "Dry cleaner",
+            "Upholstery cleaning service"
+          ],
+          "fid": "0x882b2e06f26aaaab:0x26c0a2a2d834428a",
+          "cid": "2792410589265412746",
+          "reviewsCount": 195,
+          "reviewsDistribution": {
+            "oneStar": 1,
+            "twoStar": 0,
+            "threeStar": 0,
+            "fourStar": 6,
+            "fiveStar": 188
+          },
+          "imagesCount": 15,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.854Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "10 AM to 6 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "10 AM to 6 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "10 AM to 6 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "10 AM to 6 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "10 AM to 6 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "11 AM to 5 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Closed"
+            }
+          ],
+          "wasOpenAtScrapeTime": false,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=Toronto%20Drapery%20Cleaning&query_place_id=ChIJq6pq8gYuK4gRikI02KKiwCY",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 2,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLe5cMQOlez5ckb9KEPa8nk0Gqvcgdi-hGp55ybCE118KEzxqSPgDZIqG033zphtY-U6wyjwBrl63_pVWoaISImqrRnpuJX-miGpseL-yxiwvnPBcBsjRtLKcPKH_m1nYKgVBvuP=w408-h249-k-no",
+          "kgmid": "/g/11h04k05cj",
+          "businessProfileId": "3320166390675301572"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "MintHome Clean GTA",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": "205 Placer Ct Unit 418, North York, ON M2H 0A9, Canada",
+          "neighborhood": "North York",
+          "street": "205 Placer Ct Unit 418",
+          "city": null,
+          "postalCode": "M2H 0A9",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://mintcanada.one/toronto/?utm_source=google&utm_medium=organic&utm_campaign=gbp_gta&utm_content=website",
+          "phone": "+1 647-676-3335",
+          "phoneUnformatted": "+16476763335",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.8016867,
+            "lng": -79.3424266
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.8,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJW82x46VPF4kR7LGL79Fn-TE",
+          "categories": [
+            "House cleaning service",
+            "Carpet cleaning service",
+            "Cleaners",
+            "Window cleaning service"
+          ],
+          "fid": "0x89174fa5e3b1cd5b:0x31f967d1ef8bb1ec",
+          "cid": "3601023528424157676",
+          "reviewsCount": 274,
+          "reviewsDistribution": {
+            "oneStar": 12,
+            "twoStar": 0,
+            "threeStar": 1,
+            "fourStar": 0,
+            "fiveStar": 261
+          },
+          "imagesCount": 140,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.854Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "9:30 AM to 9:30 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "9:30 AM to 9:30 PM"
+            }
+          ],
+          "wasOpenAtScrapeTime": true,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=MintHome%20Clean%20GTA&query_place_id=ChIJW82x46VPF4kR7LGL79Fn-TE",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 3,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLeC1LZBcY_33QU3OTopr7pNyA-ALU99cWW59PtsP0Id70vwtYKO7XPeD0CdVh5HEqDsjbi20FNQ-Fo5MaLFKNxwB37Zv83IHjcg09xfQej_SHJM5GOfyps4QmjopIDAaQi0wzgjJmKvAPAi=w408-h583-k-no",
+          "kgmid": "/g/11p_2k7p5b",
+          "businessProfileId": "6931743546974973091"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Urgent Cleaners",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": "3555 Don Mills Rd. #215, North York, ON M2H 3N3, Canada",
+          "neighborhood": "North York",
+          "street": "3555 Don Mills Rd. #215",
+          "city": null,
+          "postalCode": "M2H 3N3",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://urgentcleaners.com/cleaning-north-york/",
+          "phone": "+1 647-638-6261",
+          "phoneUnformatted": "+16476386261",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7944263,
+            "lng": -79.3537595
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 5,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJwaYvfjbT1IkRAQOU7a9LLmw",
+          "categories": [
+            "House cleaning service",
+            "Carpet cleaning service",
+            "Cleaners",
+            "Janitorial service",
+            "Tile cleaning service",
+            "Window cleaning service"
+          ],
+          "fid": "0x89d4d3367e2fa6c1:0x6c2e4bafed940301",
+          "cid": "7795251224002167553",
+          "reviewsCount": 6,
+          "reviewsDistribution": {
+            "oneStar": 0,
+            "twoStar": 0,
+            "threeStar": 0,
+            "fourStar": 0,
+            "fiveStar": 6
+          },
+          "imagesCount": 40,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.854Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "8 AM to 9 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "8 AM to 9 PM"
+            }
+          ],
+          "wasOpenAtScrapeTime": true,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=Urgent%20Cleaners&query_place_id=ChIJwaYvfjbT1IkRAQOU7a9LLmw",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 4,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLenS1a2H-LekxnlsK4MSCOMtYEwjDsPEe9pK_gB2FSL89xShZfHeLMuBN0qUEXNrQ33antHcIxvT76pWlUjOyGINkFl-44vf8NI_GoLNbUoOVMCm_SjfB0o8a8GEXd6HC_WK_QsW8Rodz1L=w408-h544-k-no",
+          "kgmid": "/g/11y36mdqmx",
+          "businessProfileId": "3032992558884175971"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Master Maid Cleaning Services North York",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": "109 Fontainbleau Dr, North York, ON M3M 1P1, Canada",
+          "neighborhood": "North York",
+          "street": "109 Fontainbleau Dr",
+          "city": null,
+          "postalCode": "M3M 1P1",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://mastermaid.ca/professional-deep-cleaning-services-in-north-york/?utm_source=GMB&utm_medium=organic",
+          "phone": "+1 437-826-8588",
+          "phoneUnformatted": "+14378268588",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7929127,
+            "lng": -79.4337089
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.9,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJUzovZd7JNUMRTGrVblApfgs",
+          "categories": [
+            "House cleaning service",
+            "Carpet cleaning service",
+            "Cleaners",
+            "Janitorial service",
+            "Upholstery cleaning service"
+          ],
+          "fid": "0x4335c9de652f3a53:0xb7e29506ed56a4c",
+          "cid": "828144806916352588",
+          "reviewsCount": 160,
+          "reviewsDistribution": {
+            "oneStar": 2,
+            "twoStar": 1,
+            "threeStar": 0,
+            "fourStar": 3,
+            "fiveStar": 154
+          },
+          "imagesCount": 269,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.855Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "9 AM to 5 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "9 AM to 5 PM"
+            }
+          ],
+          "wasOpenAtScrapeTime": false,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=Master%20Maid%20Cleaning%20Services%20North%20York&query_place_id=ChIJUzovZd7JNUMRTGrVblApfgs",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 5,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLf5-NEzpi82pBlNfaRwqYL7HyFCUuH0qreOBvLgTmMllyttQpzMH6rt6Wn2UGnAdcppp6ESUW59bfAdIT8qavKeZosRHhrpCw3fOFdQaqcKuGmtO0swhJBrxPNh5DW0fFxTcdywaRE2ZnY=w408-h544-k-no",
+          "kgmid": "/g/11tn9rkxq_",
+          "businessProfileId": "2871072001593384682"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "NICK'S Window Cleaning",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "Window cleaning service",
+          "address": "260 Seneca Hill Dr #615, North York, ON M2J 4S6, Canada",
+          "neighborhood": "North York",
+          "street": "260 Seneca Hill Dr #615",
+          "city": null,
+          "postalCode": "M2J 4S6",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://nickswindowcleaning.ca/?utm_source=google_maps&utm_medium=toronto",
+          "phone": "+1 416-890-0203",
+          "phoneUnformatted": "+14168900203",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7901406,
+            "lng": -79.3573361
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.8,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJM5_5JLctK4gRchbZQeMZSH0",
+          "categories": [
+            "Window cleaning service",
+            "Carpet cleaning service",
+            "Cleaners",
+            "Gutter cleaning service",
+            "Gutter service",
+            "House cleaning service",
+            "Landscape lighting designer",
+            "Pressure washing service",
+            "Upholstery cleaning service"
+          ],
+          "fid": "0x882b2db724f99f33:0x7d4819e341d91672",
+          "cid": "9027493916917175922",
+          "reviewsCount": 645,
+          "reviewsDistribution": {
+            "oneStar": 17,
+            "twoStar": 5,
+            "threeStar": 6,
+            "fourStar": 30,
+            "fiveStar": 587
+          },
+          "imagesCount": 34,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.855Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "7 AM to 9 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "7 AM to 9 PM"
+            }
+          ],
+          "wasOpenAtScrapeTime": true,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=NICK'S%20Window%20Cleaning&query_place_id=ChIJM5_5JLctK4gRchbZQeMZSH0",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 6,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLfGAKsUD5_LT9edEdAZ-CVKQFWfex7GOxJ-TU-W03G5e4CWvOhjrYZs_nhBB_8FFOQ4PSAXdzMrlpNMq2jlcKJG71_nMRGsqIvM0afvDDf_SUc0nzCb1t0f1QnEpBDBxyO_nCPNxw=w408-h306-k-no",
+          "kgmid": "/g/1q5bn22wv",
+          "businessProfileId": "7699948742286438932"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Condo Cleaning Services Toronto",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": "2900 Steeles Ave E, Thornhill, ON L3T 4X1, Canada",
+          "neighborhood": "Thornhill",
+          "street": "2900 Steeles Ave E",
+          "city": "Thornhill",
+          "postalCode": "L3T 4X1",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://www.condocleaning.net/",
+          "phone": "+1 647-370-4642",
+          "phoneUnformatted": "+16473704642",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.8118413,
+            "lng": -79.3587192
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 5,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJsXdSKaPT1IkRLUyI267alhg",
+          "categories": [
+            "House cleaning service"
+          ],
+          "fid": "0x89d4d3a3295277b1:0x1896daaedb884c2d",
+          "cid": "1771843947959176237",
+          "reviewsCount": 4,
+          "reviewsDistribution": {
+            "oneStar": 0,
+            "twoStar": 0,
+            "threeStar": 0,
+            "fourStar": 0,
+            "fiveStar": 4
+          },
+          "imagesCount": 3,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.855Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "9:30 AM to 5 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "9:30 AM to 5 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "9:30 AM to 5 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "9:30 AM to 5 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "9:30 AM to 5 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "Closed"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Closed"
+            }
+          ],
+          "wasOpenAtScrapeTime": false,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=Condo%20Cleaning%20Services%20Toronto&query_place_id=ChIJsXdSKaPT1IkRLUyI267alhg",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 7,
+          "isAdvertisement": false,
+          "imageUrl": "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=NE7ntIG-Cb5bou4jqpxsbw&cb_client=search.gws-prod.grass&w=408&h=240&yaw=161.41867&pitch=0&thumbfov=100",
+          "kgmid": "/g/11tg0vfwgr",
+          "businessProfileId": "14354623819251697498"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "5 Star Cleaning - Water Remediation",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "Water damage restoration service",
+          "address": "6021 Yonge St #107, North York, ON M2M 3W2, Canada",
+          "neighborhood": "North York",
+          "street": "6021 Yonge St #107",
+          "city": null,
+          "postalCode": "M2M 3W2",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "http://5starcleaning.ca/",
+          "phone": "+1 416-315-7562",
+          "phoneUnformatted": "+14163157562",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7896861,
+            "lng": -79.417383
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 5,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJ6aiuMNAtK4gR9LpZD8hm98A",
+          "categories": [
+            "Water damage restoration service",
+            "Building restoration service"
+          ],
+          "fid": "0x882b2dd030aea8e9:0xc0f766c80f59baf4",
+          "cid": "13904695383966726900",
+          "reviewsCount": 54,
+          "reviewsDistribution": {
+            "oneStar": 0,
+            "twoStar": 0,
+            "threeStar": 0,
+            "fourStar": 1,
+            "fiveStar": 53
+          },
+          "imagesCount": 532,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.855Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Thursday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Friday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Saturday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Open 24 hours"
+            }
+          ],
+          "wasOpenAtScrapeTime": true,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=5%20Star%20Cleaning%20-%20Water%20Remediation&query_place_id=ChIJ6aiuMNAtK4gR9LpZD8hm98A",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 8,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLc_YNNKDVPwTlgPIdH5HKxDLNH5yVNSEZIcZZza2BSvsRGAVz90ZDqRjjk5hvmNyfjHuRLSTUULDqb-DGG77h5cg9PWyH0851RBBdI_PGVTQJ7ggeerLlP1ADWJWv2I4DzH_DQW=w408-h544-k-no",
+          "kgmid": "/g/11qnr4fg57",
+          "businessProfileId": "16755607774411185616"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "Madam Clean Services",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": null,
+          "neighborhood": null,
+          "street": null,
+          "city": null,
+          "postalCode": null,
+          "state": null,
+          "countryCode": null,
+          "website": "https://www.madamclean.ca/",
+          "phone": "+1 647-808-9742",
+          "phoneUnformatted": "+16478089742",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.7797479,
+            "lng": -79.4784014
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.8,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJQVC0Hm4tK4gRJ3Wa8XHiCag",
+          "categories": [
+            "House cleaning service",
+            "Cleaners",
+            "Cleaning service",
+            "Service establishment",
+            "Upholstery cleaning service",
+            "Window cleaning service"
+          ],
+          "fid": "0x882b2d6e1eb45041:0xa809e271f19a7527",
+          "cid": "12108458052174902567",
+          "reviewsCount": 59,
+          "reviewsDistribution": {
+            "oneStar": 2,
+            "twoStar": 0,
+            "threeStar": 1,
+            "fourStar": 0,
+            "fiveStar": 56
+          },
+          "imagesCount": 70,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.855Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Thursday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Friday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Saturday",
+              "hours": "Open 24 hours"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Open 24 hours"
+            }
+          ],
+          "wasOpenAtScrapeTime": true,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=Madam%20Clean%20Services&query_place_id=ChIJQVC0Hm4tK4gRJ3Wa8XHiCag",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 10,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLe_5NwBndi-Nv02g8RrxyG4TFE7m4H9_5qsn_zJQMSolJM5MPU9M_-SvmhmxgKYs8hHQ6Tt-H-4TqkAoZb4tQODzXMRX8KQZBsp-9OEnLyH-vJk7Vwdl7tRSt8fGpOqd3qlkFXd=w434-h240-k-no",
+          "kgmid": "/g/11g6hwgyw_",
+          "businessProfileId": "5386120051446038879"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "ClarePoint Facility Services Inc",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "Janitorial service",
+          "address": null,
+          "neighborhood": null,
+          "street": null,
+          "city": null,
+          "postalCode": null,
+          "state": null,
+          "countryCode": null,
+          "website": "https://clarepointfs.com/",
+          "phone": "+1 289-402-3824",
+          "phoneUnformatted": "+12894023824",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.6666714,
+            "lng": -79.4784014
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 5,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJvTG0bJ_HGQIRuHsgLqsBIAY",
+          "categories": [
+            "Janitorial service",
+            "Cleaning products supplier",
+            "Service establishment",
+            "House cleaning service",
+            "Property maintenance",
+            "Tile cleaning service"
+          ],
+          "fid": "0x219c79f6cb431bd:0x62001ab2e207bb8",
+          "cid": "441354598207224760",
+          "reviewsCount": 4,
+          "reviewsDistribution": {
+            "oneStar": 0,
+            "twoStar": 0,
+            "threeStar": 0,
+            "fourStar": 0,
+            "fiveStar": 4
+          },
+          "imagesCount": 19,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:08.856Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "6 AM to 8 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "6 AM to 8 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "6 AM to 8 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "6 AM to 8 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "6 AM to 8 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "8 AM to 6 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Closed"
+            }
+          ],
+          "additionalOpeningHours": {
+            "Online service hours": [
+              {
+                "day": "Monday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Tuesday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Wednesday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Thursday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Friday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Saturday",
+                "hours": "Open 24 hours"
+              },
+              {
+                "day": "Sunday",
+                "hours": "Open 24 hours"
+              }
+            ]
+          },
+          "wasOpenAtScrapeTime": false,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=ClarePoint%20Facility%20Services%20Inc&query_place_id=ChIJvTG0bJ_HGQIRuHsgLqsBIAY",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.44467702344761,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 20,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLcxxk7TKgUJAkrE5Wt6u7UnlaqtkBxnJa177KTghkyKZ21C7HSE1Ebcveaj3XNIG5YhmueAcouVF0t-IAI8Nm2b2-hUfriSC0bISZkKr6igzaOVyCX3odC42absI0_gujQvR7pAXQ=w408-h306-k-no",
+          "kgmid": "/g/11vjpkz3ys",
+          "businessProfileId": "1879729708998752090"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "title": "The Cleaning Authority - Markham, Vaughan and Toronto East",
+          "subTitle": null,
+          "description": null,
+          "ownerDescription": null,
+          "price": null,
+          "categoryName": "House cleaning service",
+          "address": "151 Nashdene Rd Unit 54, Scarborough, ON M1V 4C4, Canada",
+          "neighborhood": "Scarborough",
+          "street": "151 Nashdene Rd Unit 54",
+          "city": null,
+          "postalCode": "M1V 4C4",
+          "state": "Ontario",
+          "countryCode": "CA",
+          "website": "https://www.thecleaningauthority.ca/markham",
+          "phone": "+1 416-628-9873",
+          "phoneUnformatted": "+14166289873",
+          "claimThisBusiness": false,
+          "location": {
+            "lat": 43.8188732,
+            "lng": -79.2471413
+          },
+          "locatedIn": null,
+          "floor": null,
+          "plusCode": null,
+          "menu": null,
+          "servicesLink": null,
+          "totalScore": 4.7,
+          "permanentlyClosed": false,
+          "temporarilyClosed": false,
+          "placeId": "ChIJSz_hTtTW1IkRZ_IsQ97gRI0",
+          "categories": [
+            "House cleaning service"
+          ],
+          "fid": "0x89d4d6d44ee13f4b:0x8d44e0de432cf267",
+          "cid": "10179508302978544231",
+          "reviewsCount": 297,
+          "reviewsDistribution": {
+            "oneStar": 13,
+            "twoStar": 8,
+            "threeStar": 1,
+            "fourStar": 20,
+            "fiveStar": 255
+          },
+          "imagesCount": 41,
+          "imageCategories": [],
+          "scrapedAt": "2026-11-02T00:29:09.628Z",
+          "reserveTableUrl": null,
+          "googleFoodUrl": null,
+          "hotelStars": null,
+          "hotelDescription": null,
+          "checkInDate": null,
+          "checkOutDate": null,
+          "hotelAds": [],
+          "popularTimesLiveText": null,
+          "popularTimesLivePercent": null,
+          "popularTimesHistogram": {},
+          "openingHours": [
+            {
+              "day": "Monday",
+              "hours": "7 AM to 10 PM"
+            },
+            {
+              "day": "Tuesday",
+              "hours": "7 AM to 10 PM"
+            },
+            {
+              "day": "Wednesday",
+              "hours": "7 AM to 10 PM"
+            },
+            {
+              "day": "Thursday",
+              "hours": "7 AM to 10 PM"
+            },
+            {
+              "day": "Friday",
+              "hours": "7 AM to 10 PM"
+            },
+            {
+              "day": "Saturday",
+              "hours": "8 AM to 5 PM"
+            },
+            {
+              "day": "Sunday",
+              "hours": "Closed"
+            }
+          ],
+          "wasOpenAtScrapeTime": false,
+          "peopleAlsoSearch": [],
+          "placesTags": [],
+          "reviewsTags": [],
+          "gasPrices": [],
+          "url": "https://www.google.com/maps/search/?api=1&query=The%20Cleaning%20Authority%20-%20Markham%2C%20Vaughan%20and%20Toronto%20East&query_place_id=ChIJSz_hTtTW1IkRZ_IsQ97gRI0",
+          "searchPageUrl": "https://www.google.com/maps/search/toronto%20cleaner/@43.816662806317915,-79.17097392965712,13z?hl=en",
+          "searchString": "toronto cleaner",
+          "language": "en",
+          "rank": 1,
+          "isAdvertisement": false,
+          "imageUrl": "https://lh3.googleusercontent.com/grass-cs/AABkmLc7PoKd4O4T6Ol8_gB5OuGFfVBcIfzhO30KagRLHHMz-Bda0Umw0I-fo3iZgQcJqxzfy4cVAKuJbV66NmQy1FKz57Fw_dUO7NSntcHXDIdJmSvYxkIlsJZh1kOMaoazLCeO1I8A=w408-h272-k-no",
+          "kgmid": "/g/12qfwxfwh",
+          "businessProfileId": "1868882368624736428"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "055a5dd0-0780-4165-ad09-ecb02509704b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "mRslNN41jNJl6IKp",
+  "tags": []
+}
