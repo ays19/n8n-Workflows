@@ -1,0 +1,715 @@
+{
+  "name": "7.Personal Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text || $json.content?.parts?.[0]?.text || $json.message?.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a personal assistant for Sharar helping him with various administrative tasks with the goal of being able to manage both his gmail inbox and google calendar.\n\n##Tools\n1. Google Calendar. Call this tool when the user wants to do anything related to their gmail inbox.\n2. Google Calendar. Call this tool when the user wants to do anything related to their Google Calendar.\n\n##Rules\n1. If their is a person or email that needs to be found, the tools that you call will be able to find the person. You do not need to ask who the person is or what their email is, because it will be found in the following steps"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        96
+      ],
+      "id": "ea0b5b92-88f9-4d84-8382-6ea0a8573da2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.6-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        304
+      ],
+      "id": "79607949-2114-42bf-95f8-c440fdafefc7",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}_v2",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        304
+      ],
+      "id": "bbecd600-3ef7-4a27-8cda-3c67535a32c2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"output\": \"\",\n  \"success\": \"\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1104,
+        400
+      ],
+      "id": "80531bfb-1706-4939-a325-5cf73a3c6e03",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1056,
+        80
+      ],
+      "id": "b3d058e0-7cde-4f61-af1b-34b974b99df4",
+      "name": "Telegram Trigger",
+      "webhookId": "1e3cf267-750a-479a-a9e8-a6bec690d248",
+      "credentials": {
+        "telegramApi": {
+          "id": "IH3bDax5FeAxTran",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "17689b4a-0777-4b8b-a18b-d98a82624b16",
+              "leftValue": "={{ $json.message.voice.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -832,
+        80
+      ],
+      "id": "b755991d-7e1c-4f28-a35d-2f0c509bf4d5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        -16
+      ],
+      "id": "eb6bf293-8311-4219-baeb-24a38c1af1fa",
+      "name": "Get a file",
+      "webhookId": "926c33b8-3af1-49f8-9bcc-164e105458cd",
+      "credentials": {
+        "telegramApi": {
+          "id": "IH3bDax5FeAxTran",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.1-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.1-flash-lite"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -384,
+        -16
+      ],
+      "id": "9303ee87-f9c1-459c-95a9-4958fa1d3d6c",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -176,
+        96
+      ],
+      "id": "707cb603-a18a-4fde-8c14-483154660e60",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8aa9ae3f-7ec5-43d4-a123-b86eeb1f9b8a",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -608,
+        176
+      ],
+      "id": "b23771c2-8204-4a2b-a4df-bf3bf9167a84",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output.replace(/^\\*\\s+/gm, '• ').replace(/\\*\\*/g, '*') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        352,
+        96
+      ],
+      "id": "605ca48b-dd74-4eea-8457-596ca2555ee4",
+      "name": "Send a text message",
+      "webhookId": "01406663-d01e-45a7-a1f9-e002f00156bc",
+      "credentials": {
+        "telegramApi": {
+          "id": "IH3bDax5FeAxTran",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Call this tool when the user wants to manage their gmail inbox.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "=You are a personal gmail assistant for Sharar with the goal of helping him manage his email inbox.\n\n##Tools\n1. Send Email. Call this tool to send off an email\n2. Find Email. Call this tool find an existing email\n3. Reply to Email. Call this tool to reply to an email\n4. Label Email. Call this tool to label an existing email\n5. Google Contacts. Call this tool to find a persons email based on their name.\n\n##Rules\n1. Before replying or labelling an email, always search and find that email first. Only reply and label once you've found the email.\n2. Always search for a users email via Google Contacts before sending off an email\n3. If the user asks you to reply to an email, never send a new one. Always find the existing email, and reply to that - never send an email in addition to replying\n4. When labelling an email, it must be structure in a text array like so: {{ [\"CATEGORY_PROMOTIONS\",\"CATEGORY_PERSONAL\",\"CATEGORY_FORUMS\",\"CATEGORY_SOCIAL\",\"CATEGORY_UPDATES\"] }}, there could be one label, two, or as many as required. Please follow this structure whenever labelling an email\n\n##Notes\n1. Today's date is: {{ $today }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        -112,
+        480
+      ],
+      "id": "75f5faf2-2e45-4e80-b47b-9b37c9f93847",
+      "name": "Gmail Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        640
+      ],
+      "id": "2bd8b691-1a0c-4ed6-a49d-abd39ad21672",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}_v2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -64,
+        656
+      ],
+      "id": "459cf415-00a8-42b1-a8cc-82f0fd3310df",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}",
+        "fields": [
+          "emailAddresses",
+          "names",
+          "phoneNumbers"
+        ],
+        "useQuery": true,
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', `I want to pull out the contact`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.googleContactsTool",
+      "typeVersion": 1,
+      "position": [
+        48,
+        656
+      ],
+      "id": "1e26b8b0-c4bf-4859-acef-7d7f17dddd36",
+      "name": "Contact",
+      "credentials": {
+        "googleContactsOAuth2Api": {
+          "id": "H4AT6t9zgHBz1BrE",
+          "name": "Google Contacts account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        656
+      ],
+      "id": "547aca05-2c9e-4a48-9407-2a7b92548c12",
+      "name": "Send",
+      "webhookId": "a5d22a37-41ac-45d7-874d-4f0a96d70ddd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXtgclWELY8UpGvV",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "filters": {
+          "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search', ``, 'string') }}",
+          "receivedAfter": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Received_After', ``, 'string') }}",
+          "receivedBefore": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Received_Before', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        656
+      ],
+      "id": "f170fb89-16a7-4c4a-807f-a361515f6160",
+      "name": "Find",
+      "webhookId": "d056614e-220d-4e03-a22d-b02f70849a86",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXtgclWELY8UpGvV",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        784
+      ],
+      "id": "6f93dd74-a8a2-4660-b2ad-5bcfd29a8be8",
+      "name": "Reply to a message in Gmail",
+      "webhookId": "410aca2a-5bf2-43db-9eee-d1463af9768b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXtgclWELY8UpGvV",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', ``, 'string') }}",
+        "labelIds": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Label_Names_or_IDs', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        880
+      ],
+      "id": "b834f06b-7b83-46ab-9e0c-84503425ebe2",
+      "name": "Label",
+      "webhookId": "41bc6b4b-1cb8-43c7-8753-62409e26d10f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXtgclWELY8UpGvV",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this tool when the user wants to handle anything in their google calendar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "yIlU1eOxMoZeFFJS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/yIlU1eOxMoZeFFJS",
+          "cachedResultName": "7.1Sub Calender Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "prompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('prompt', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        464
+      ],
+      "id": "5627b1cd-0455-4bfa-8863-02e0bc35f657",
+      "name": "Call '7.1Sub Calender Agent'"
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 285028225,
+          "message": {
+            "message_id": 29,
+            "from": {
+              "id": 1037428222,
+              "is_bot": false,
+              "first_name": "Ahsan",
+              "last_name": "Yasir Sharar",
+              "username": "Sharar19",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 1037428222,
+              "first_name": "Ahsan",
+              "last_name": "Yasir Sharar",
+              "username": "Sharar19",
+              "type": "private"
+            },
+            "date": 1794058212,
+            "text": "delete the 8th nov 2pm coffee event"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        []
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply to a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label": {
+      "ai_tool": [
+        [
+          {
+            "node": "Gmail Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call '7.1Sub Calender Agent'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9df737db-caf6-4e23-b159-5e8f531f12f4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e0ff65914ce7782220ca1d05b1305084f97a4432f8ad0eca9cc79e7d583ea20"
+  },
+  "nodeGroups": [],
+  "id": "D8J6YIw35sVAjX96",
+  "tags": []
+}
