@@ -6,7 +6,7 @@ Whether you are **learning workflow automation**, **evaluating automation engine
 
 ---
 
-## 🎯 Why This Repository? (For Recruiters & Learners)
+## 🎯 Why This Repository?
 
 - **For Recruiters & Hiring Managers:** Demonstrates end-to-end automation engineering — REST APIs, OAuth2 integrations, custom JavaScript data normalization, batching with rate-limit pacing, RPA bridging (UiPath), AI tool-calling agents, sub-agent orchestration, and vector-database RAG pipelines.
 - **For Learners:** Workflows are numbered in a progressive learning path (`1` → `10`), with plain-English explanations, ASCII architecture diagrams, and exact node breakdowns so you can import and understand each pattern in minutes.
