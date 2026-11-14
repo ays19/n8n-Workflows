@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChallanAI — Smart Document Extractor & Split-Screen Verifier</title>
+
+  <!-- Google Fonts: Inter + Hind Siliguri + Noto Sans Bengali -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) {
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'Hind Siliguri', 'Noto Sans Bengali', 'system-ui', 'sans-serif'],
+              bengali: ['Hind Siliguri', 'Noto Sans Bengali', 'Inter', 'sans-serif'],
+            },
+            boxShadow: {
+              glass: '0 8px 32px rgba(2, 6, 23, 0.35)',
+            }
+          }
+        }
+      };
+    }
+  </script>
+
+  <!-- PDF.js (v3.11 UMD for reliable Canvas rendering + SVG Filtering) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+
+  <!-- Markdown & Sanitizer for AI Chat -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js" defer></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', 'Hind Siliguri', 'Noto Sans Bengali', system-ui, sans-serif;
+    }
+    .font-bengali {
+      font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', sans-serif;
+    }
+
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.35); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
+
+    /* Range slider styling */
+    input[type="range"].enhancer-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 5px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"].enhancer-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #6366f1;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    /* Markdown styles inside AI Chat */
+    .ai-markdown p { margin-bottom: 0.5rem; }
+    .ai-markdown p:last-child { margin-bottom: 0; }
+    .ai-markdown ul, .ai-markdown ol { margin: 0.4rem 0 0.6rem 1.25rem; }
+    .ai-markdown ul { list-style-type: disc; }
+    .ai-markdown ol { list-style-type: decimal; }
+    .ai-markdown code {
+      background: rgba(99, 102, 241, 0.15);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .ai-markdown pre {
+      background: rgba(15, 23, 42, 0.85);
+      color: #e2e8f0;
+      padding: 0.65rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+    .ai-markdown table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.82rem;
+    }
+    .ai-markdown th, .ai-markdown td {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+    }
+    .ai-markdown th {
+      background: rgba(99, 102, 241, 0.14);
+      font-weight: 600;
+    }
+
+    @keyframes fadeUp {
+      0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-fadeUp {
+      animation: fadeUp 0.22s ease-out forwards;
+    }
+
+    /* Desktop Split Pane Sizing */
+    @media (min-width: 1024px) {
+      #left-pane { width: var(--split-left, 50%) !important; display: flex !important; }
+      #right-pane { width: var(--split-right, 50%) !important; display: flex !important; }
+    }
+
+    /* Print styling for Clean Digital Replica View */
+    @media print {
+      body * { visibility: hidden !important; }
+      #printable-challan, #printable-challan * { visibility: visible !important; }
+      #printable-challan {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 20px !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-indigo-500/30 h-screen flex flex-col overflow-hidden">
+
+  <!-- SVG Convolution Filter Definition for Deterministic Clarity Enhancer -->
+  <svg class="absolute w-0 h-0 pointer-events-none overflow-hidden" aria-hidden="true">
+    <defs>
+      <filter id="challan-clarity-filter" color-interpolation-filters="sRGB">
+        <feConvolveMatrix
+          id="svg-convolve-matrix"
+          order="3"
+          kernelMatrix="0 -1.1 0 -1.1 5.4 -1.1 0 -1.1 0"
+          divisor="1"
+          bias="0"
+          preserveAlpha="true"
+        />
+      </filter>
+      <filter id="challan-binarize-filter" color-interpolation-filters="sRGB">
+        <feConvolveMatrix
+          id="svg-convolve-matrix-bin"
+          order="3"
+          kernelMatrix="0 -1.1 0 -1.1 5.4 -1.1 0 -1.1 0"
+          divisor="1"
+          bias="0"
+          preserveAlpha="true"
+        />
+        <feColorMatrix type="saturate" values="0" />
+        <feComponentTransfer>
+          <feFuncR type="linear" slope="2.6" intercept="-0.85" />
+          <feFuncG type="linear" slope="2.6" intercept="-0.85" />
+          <feFuncB type="linear" slope="2.6" intercept="-0.85" />
+        </feComponentTransfer>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- =====================================================================
+       TOP NAVIGATION & UPLOAD BAR
+  ====================================================================== -->
+  <header class="flex-shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-30">
+    <div class="px-4 py-2.5 flex items-center justify-between gap-3">
+      <!-- Brand -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 flex-shrink-0">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2" />
+            <path d="M8 8h8M8 12h5M8 16h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <circle cx="16.5" cy="15.5" r="2.5" fill="currentColor" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-extrabold tracking-tight truncate">ChallanAI</h1>
+            <span class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25">
+              Split-Screen Verifier
+            </span>
+          </div>
+          <p class="hidden md:block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+            Smart Document Extractor • T.R. Form No-6 &amp; Invoice RAG Portal
+          </p>
+        </div>
+      </div>
+
+      <!-- Right Header Controls -->
+      <div class="flex items-center gap-2">
+        <input id="top-file-input" type="file" accept="application/pdf,image/png,image/jpeg" class="hidden" />
+
+        <button
+          id="btn-top-upload"
+          type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm shadow-indigo-500/30 transition disabled:opacity-50"
+        >
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span id="btn-top-upload-label" class="hidden sm:inline">Upload Challan</span>
+        </button>
+
+        <button
+          id="btn-theme-toggle"
+          type="button"
+          title="Toggle Dark / Light Mode"
+          class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+        >
+          <!-- Sun icon (shown in dark mode) -->
+          <svg id="icon-sun" viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <!-- Moon icon (shown in light mode) -->
+          <svg id="icon-moon" viewBox="0 0 24 24" class="w-4 h-4 hidden" fill="none">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button
+          id="btn-open-settings"
+          type="button"
+          title="Webhook & Sheet Settings"
+          class="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition"
+        >
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.75" />
+          </svg>
+          <span class="hidden md:inline">Settings</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Step Progress Indicator (Hidden when idle) -->
+    <div id="upload-stepper" class="hidden px-4 py-2.5 bg-indigo-500/10 border-t border-indigo-500/20 dark:bg-indigo-950/40 dark:border-indigo-500/25">
+      <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-300">
+          <span class="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+          <span>n8n AI Pipeline Active</span>
+        </div>
+        <div id="stepper-pills" class="flex flex-wrap items-center gap-1.5 sm:gap-2"></div>
+      </div>
+    </div>
+
+    <!-- Tablet / Mobile Tab Navigation -->
+    <div class="lg:hidden grid grid-cols-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+      <button type="button" data-mobile-tab="viewer" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800/50 transition">
+        📄 Document Viewer
+      </button>
+      <button type="button" data-mobile-tab="sheet" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition">
+        📊 Google Sheet
+      </button>
+      <button type="button" data-mobile-tab="chat" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition">
+        💬 AI Assistant
+      </button>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       MAIN SPLIT WORKSPACE
+  ====================================================================== -->
+  <main id="split-container" class="flex-1 flex min-h-0 overflow-hidden relative" style="--split-left: 50%; --split-right: 50%;">
+
+    <!-- LEFT PANEL: DOCUMENT VIEWER & CLARITY STUDIO -->
+    <section id="left-pane" class="h-full min-w-0 w-full flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70">
+      <!-- Panel Top Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
+        <!-- View Mode Tabs -->
+        <div class="inline-flex p-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700">
+          <button
+            id="tab-view-scan"
+            type="button"
+            class="px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
+          >
+            Original / Enhanced Scan
+          </button>
+          <button
+            id="tab-view-replica"
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+          >
+            <span class="font-bengali">ডিজিটাল ক্লিন ভিউ</span>
+            <span id="replica-ready-dot" class="hidden w-2 h-2 rounded-full bg-emerald-500" title="OCR Data Ready"></span>
+          </button>
+        </div>
+
+        <!-- Zoom / Rotate / PDF Page Controls -->
+        <div id="scan-zoom-controls" class="flex items-center gap-1">
+          <div id="pdf-page-controls" class="hidden items-center gap-1 mr-2 px-2 py-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 text-xs font-medium">
+            <button id="btn-pdf-prev" type="button" class="disabled:opacity-30 hover:text-indigo-500">◀</button>
+            <span id="pdf-page-indicator">1/1</span>
+            <button id="btn-pdf-next" type="button" class="disabled:opacity-30 hover:text-indigo-500">▶</button>
+          </div>
+
+          <button id="btn-zoom-out" type="button" title="Zoom Out" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+              <path d="M21 21l-4.35-4.35M8 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <span id="zoom-label" class="text-[11px] font-semibold w-10 text-center text-slate-600 dark:text-slate-300">100%</span>
+          <button id="btn-zoom-in" type="button" title="Zoom In" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+              <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <button id="btn-rotate" type="button" title="Rotate 90°" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button id="btn-fullscreen" type="button" title="Toggle Fullscreen" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Clarity Enhancer Toolbar -->
+      <div id="clarity-toolbar" class="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/50">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <button
+              id="btn-toggle-enhancer"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:border-indigo-500"
+            >
+              <span>✨ Clarity Enhancer (Zero Data Change)</span>
+              <span id="enhancer-badge" class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-700">OFF</span>
+            </button>
+
+            <button
+              id="btn-reset-enhancer"
+              type="button"
+              class="hidden text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div id="enhancer-checkboxes" class="hidden items-center gap-2">
+            <label class="inline-flex items-center gap-1.5 text-xs cursor-pointer select-none px-2 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <input id="chk-grayscale" type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500" />
+              <span>Grayscale</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 text-xs cursor-pointer select-none px-2 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <input id="chk-binarize" type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500" />
+              <span>Binarize</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sliders -->
+        <div id="enhancer-sliders" class="hidden grid-cols-1 sm:grid-cols-3 gap-3 mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300">
+              <span>Sharpness (Unsharp Matrix)</span>
+              <span id="val-sharpness" class="font-mono">1.10</span>
+            </div>
+            <input id="rng-sharpness" type="range" min="0" max="2.5" step="0.1" value="1.1" class="enhancer-slider bg-slate-300 dark:bg-slate-700" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300">
+              <span>Contrast</span>
+              <span id="val-contrast" class="font-mono">135%</span>
+            </div>
+            <input id="rng-contrast" type="range" min="100" max="200" step="5" value="135" class="enhancer-slider bg-slate-300 dark:bg-slate-700" />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300">
+              <span>Brightness</span>
+              <span id="val-brightness" class="font-mono">105%</span>
+            </div>
+            <input id="rng-brightness" type="range" min="75" max="150" step="5" value="105" class="enhancer-slider bg-slate-300 dark:bg-slate-700" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Viewer Surface -->
+      <div id="viewer-dropzone" class="relative flex-1 overflow-auto bg-slate-200/60 dark:bg-slate-950/80">
+        <!-- Drag overlay -->
+        <div id="drag-overlay" class="hidden absolute inset-0 z-20 bg-indigo-600/20 backdrop-blur-sm border-2 border-dashed border-indigo-500 flex-col items-center justify-center p-6 text-center">
+          <p class="text-base font-bold text-indigo-700 dark:text-indigo-200">
+            Drop Challan PDF or Image to Upload &amp; Verify
+          </p>
+        </div>
+
+        <!-- VIEW 1: Scan Mode -->
+        <div id="scan-view-container" class="h-full">
+          <!-- Empty State Dropzone -->
+          <div id="empty-dropzone" class="h-full flex items-center justify-center p-6">
+            <div class="max-w-md w-full rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-8 text-center shadow-sm">
+              <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-4">
+                <svg viewBox="0 0 24 24" class="w-7 h-7" fill="none">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold mb-1">Upload Bank Challan or Invoice</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+                Drag &amp; drop a blurry or scanned
+                <span class="font-bengali font-semibold text-slate-700 dark:text-slate-200">টি.আর. ফরম নং-৬</span>
+                (PDF, PNG, or JPG). Instant local preview starts immediately while n8n processes OCR &amp; RAG indexing.
+              </p>
+
+              <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                <button
+                  id="btn-center-upload"
+                  type="button"
+                  class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm shadow-indigo-500/30 transition"
+                >
+                  Select PDF / Image
+                </button>
+                <button
+                  id="btn-load-sample"
+                  type="button"
+                  class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition"
+                >
+                  ✨ Load Blurry Sample
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rendered Document Surface -->
+          <div id="rendered-surface" class="hidden min-h-full items-center justify-center p-4 sm:p-6">
+            <div id="transform-wrapper" class="transition-transform duration-150 ease-out origin-center">
+              <img id="preview-image" alt="Uploaded Challan" class="hidden max-w-full max-h-[82vh] object-contain rounded-lg shadow-xl bg-white" />
+              <canvas id="preview-pdf-canvas" class="hidden max-w-full h-auto rounded-lg shadow-xl bg-white"></canvas>
+              <iframe id="preview-pdf-iframe" title="PDF Fallback Preview" class="hidden w-[700px] h-[880px] rounded-lg shadow-xl bg-white"></iframe>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Clean Digital Replica View (ডিজিটাল ক্লিন ভিউ) -->
+        <div id="replica-view-container" class="hidden h-full overflow-y-auto p-4 sm:p-6"></div>
+      </div>
+    </section>
+
+    <!-- DRAGGABLE RESIZER HANDLE (Desktop lg+) -->
+    <div
+      id="split-resizer"
+      title="Drag to resize panels"
+      class="hidden lg:flex w-1.5 cursor-col-resize items-center justify-center bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500 transition-colors flex-shrink-0 group"
+    >
+      <div class="w-0.5 h-8 rounded-full bg-slate-400 dark:bg-slate-600 group-hover:bg-white"></div>
+    </div>
+
+    <!-- RIGHT PANEL: EMBEDDED GOOGLE SHEETS LIVE VERIFIER -->
+    <section id="right-pane" class="hidden lg:flex h-full min-w-0 w-full flex-col bg-white dark:bg-slate-900/70">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            data-sheet-gid="2001116029"
+            class="sheet-tab-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+          >
+            <span>📊 PDF write</span>
+            <span class="opacity-75 text-[10px] font-mono hidden xl:inline">(gid=2001116029)</span>
+          </button>
+          <button
+            type="button"
+            data-sheet-gid="537395485"
+            class="sheet-tab-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300/70 dark:hover:bg-slate-700"
+          >
+            <span>📋 Line Items</span>
+            <span class="opacity-75 text-[10px] font-mono hidden xl:inline">(gid=537395485)</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button
+            id="btn-refresh-sheet"
+            type="button"
+            title="Reload sheet iframe to view new rows"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-indigo-500 transition"
+          >
+            <span>🔄 Refresh Sheet</span>
+          </button>
+          <a
+            id="link-external-sheet"
+            href="https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?gid=2001116029#gid=2001116029"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition"
+          >
+            <span class="hidden sm:inline">Open Full Sheet</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="relative flex-1 bg-slate-100 dark:bg-slate-950">
+        <iframe
+          id="sheet-iframe"
+          src="https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?gid=2001116029&rm=minimal#gid=2001116029"
+          title="Live Google Sheet Verifier"
+          class="w-full h-full border-0"
+          allow="clipboard-read; clipboard-write"
+        ></iframe>
+      </div>
+    </section>
+  </main>
+
+  <!-- =====================================================================
+       FLOATING AI RAG ASSISTANT WIDGET & TRIGGER BUTTON
+  ====================================================================== -->
+  <button
+    id="btn-chat-fab"
+    type="button"
+    class="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/35 transition-transform hover:scale-[1.03]"
+  >
+    <span>💬 AI Assistant</span>
+  </button>
+
+  <div
+    id="chat-widget"
+    class="hidden fixed bottom-4 right-4 z-40 w-[calc(100vw-2rem)] sm:w-[430px] h-[560px] max-h-[82vh] rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-2xl flex-col overflow-hidden animate-fadeUp"
+  >
+    <!-- Chat Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-indigo-600/10 via-violet-600/10 to-transparent">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-500/40 font-bold text-sm">
+          ✨
+        </div>
+        <div>
+          <h3 class="text-sm font-bold leading-tight">ChallanAI RAG Assistant</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Pinecone Vector DB • Bilingual (বাংলা / EN)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button id="btn-chat-reset" type="button" title="New Chat Session" class="p-1.5 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs">
+          🔄
+        </button>
+        <button id="btn-chat-close" type="button" title="Minimize Chat" class="p-1.5 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+    <!-- Chat Input -->
+    <form id="chat-form" class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
+      <div class="flex items-center gap-2">
+        <input
+          id="chat-input"
+          type="text"
+          placeholder="বাংলা বা ইংরেজিতে প্রশ্ন করুন..."
+          class="flex-1 px-3 py-2 rounded-xl text-xs sm:text-sm font-bengali bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          type="submit"
+          class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition"
+        >
+          Send ➤
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- =====================================================================
+       WORKFLOW RESULT MODAL (SUCCESS / DIAGNOSTIC ERROR)
+  ====================================================================== -->
+  <div id="workflow-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div id="workflow-modal-content" class="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden animate-fadeUp"></div>
+  </div>
+
+  <!-- =====================================================================
+       SETTINGS MODAL
+  ====================================================================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden animate-fadeUp">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+        <h2 class="text-base font-bold">⚙️ Integration &amp; Webhook Settings</h2>
+        <button id="btn-close-settings" type="button" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">✕</button>
+      </div>
+
+      <form id="settings-form" class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold mb-1.5 text-slate-700 dark:text-slate-200">n8n Upload Webhook URL</label>
+          <input id="inp-upload-webhook" type="url" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1.5 text-slate-700 dark:text-slate-200">n8n Chat Webhook URL</label>
+          <input id="inp-chat-webhook" type="url" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1.5 text-slate-700 dark:text-slate-200">Google Sheet Embed URL</label>
+          <input id="inp-sheet-url" type="url" required class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div class="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+          <button id="btn-restore-defaults" type="button" class="text-xs font-medium text-slate-500 hover:text-indigo-500">Restore Defaults</button>
+          <div class="flex gap-2">
+            <button id="btn-cancel-settings" type="button" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold">Cancel</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Save to Browser</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FLOATING TOAST -->
+  <div id="toast-container" class="hidden fixed top-16 right-4 z-50 animate-fadeUp"></div>
+
+  <!-- =====================================================================
+       PURE VANILLA APPLICATION LOGIC (Zero Babel / Zero React Dependency)
+  ====================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEYS = {
+        SETTINGS: 'challanai_settings_v1',
+        THEME: 'challanai_theme_v1',
+        CHAT_SESSION: 'challanai_chat_session_v1',
+      };
+
+      const DEFAULT_SETTINGS = {
+        uploadWebhookUrl: 'http://localhost:5678/webhook/upload-challan',
+        chatWebhookUrl: 'http://localhost:5678/webhook/9d87e23c-2ee8-42b6-8bef-67b6ac7ca642/chat',
+        googleSheetUrl: 'https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?gid=2001116029',
+      };
+
+      const QUICK_PROMPTS = [
+        'সর্বশেষ আপলোড করা চালানের মোট টাকার পরিমাণ কত?',
+        'Summarize the 2nd page invoice table and AIT deduction.',
+        'List all Challans from Pubali Bank and Midland Bank.',
+      ];
+
+      const DEFAULT_ENHANCER = {
+        enabled: false,
+        sharpness: 1.1,
+        contrast: 135,
+        brightness: 105,
+        grayscale: false,
+        binarize: false,
+      };
+
+      const SAMPLE_EXTRACTED_DATA = {
+        challan_no: 'CH-2026-084921',
+        date: '14-11-2026',
+        bank_name: 'Pubali Bank PLC',
+        branch: 'Motijheel Corporate Branch, Dhaka',
+        govt_office: 'Deputy Commissioner of Taxes, Zone-04, Dhaka',
+        paid_through_name: 'Md. Rafiqul Islam (Accounts Manager)',
+        paid_on_behalf_of: 'Bengal Tech & Engineering Ltd. (TIN: 492817462011)',
+        purpose_code: '1-1141-0010-0111 (Source Tax / AIT Deduction)',
+        amount: '৳ 45,500.00',
+        amount_in_words: 'চল্লিশ পাঁচ হাজার পাঁচশত টাকা মাত্র (Forty-Five Thousand Five Hundred Taka Only)',
+        remarks: 'AIT deducted @ 5% against Invoice #INV-9921 (Software & Infrastructure Services)',
+        attachment_summary: '2 Pages: Page 1 — T.R. Form No-6 Treasury Challan (৳45,500); Page 2 — Vendor Tax Invoice (Gross ৳9,10,000, AIT 5%).',
+        confidence: 'VERIFIED',
+      };
+
+      // Application State
+      const state = {
+        theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'dark',
+        settings: loadSettings(),
+        viewMode: 'scan', // 'scan' | 'replica'
+        showRawJson: false,
+        enhancer: { ...DEFAULT_ENHANCER },
+        zoom: 1,
+        rotation: 0,
+        isFullscreen: false,
+        currentFile: null,
+        previewUrl: null,
+        isPdf: false,
+        pdfDoc: null,
+        pdfPage: 1,
+        pdfTotalPages: 0,
+        extractedData: null,
+        isUploading: false,
+        activeSheetGid: '2001116029',
+        sheetRefreshNonce: 1,
+        chatOpen: false,
+        chatSessionId: loadChatSession(),
+        chatMessages: [],
+        isChatSending: false,
+      };
+
+      function loadSettings() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+          return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : { ...DEFAULT_SETTINGS };
+        } catch (_) {
+          return { ...DEFAULT_SETTINGS };
+        }
+      }
+
+      function loadChatSession() {
+        const existing = localStorage.getItem(STORAGE_KEYS.CHAT_SESSION);
+        if (existing) return existing;
+        const fresh = 'challanai-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem(STORAGE_KEYS.CHAT_SESSION, fresh);
+        return fresh;
+      }
+
+      // DOM Helper
+      const $ = (id) => document.getElementById(id);
+
+      // Escape HTML
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // Chime Audio Feedback
+      function playChime(type) {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          if (type === 'success') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.14);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.36);
+          } else {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.exponentialRampToValueAtTime(160, now + 0.22);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            osc.start(now);
+            osc.stop(now + 0.3);
+          }
+        } catch (_) {}
+      }
+
+      // Toast Notification
+      let toastTimer = null;
+      function showToast(msg, type = 'info') {
+        const container = $('toast-container');
+        if (!container) return;
+        const colorClass =
+          type === 'error'
+            ? 'bg-rose-600/95 text-white border-rose-400/40'
+            : type === 'success'
+            ? 'bg-emerald-600/95 text-white border-emerald-400/40'
+            : 'bg-slate-900/95 dark:bg-slate-800/95 text-white border-slate-700';
+
+        container.innerHTML = `<div class="px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg border backdrop-blur-md ${colorClass}">${escapeHtml(msg)}</div>`;
+        container.classList.remove('hidden');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          container.classList.add('hidden');
+        }, 3200);
+      }
+
+      // Theme Management
+      function applyTheme() {
+        const root = document.documentElement;
+        if (state.theme === 'dark') {
+          root.classList.add('dark');
+          $('icon-sun')?.classList.remove('hidden');
+          $('icon-moon')?.classList.add('hidden');
+        } else {
+          root.classList.remove('dark');
+          $('icon-sun')?.classList.add('hidden');
+          $('icon-moon')?.classList.remove('hidden');
+        }
+        localStorage.setItem(STORAGE_KEYS.THEME, state.theme);
+      }
+
+      // Update SVG Convolution Matrix & CSS Filter
+      function applyEnhancerFilters() {
+        const s = state.enhancer.enabled ? Number(state.enhancer.sharpness || 0) : 0;
+        const center = (1 + 4 * s).toFixed(3);
+        const edge = (-s).toFixed(3);
+        const matrix = `0 ${edge} 0 ${edge} ${center} ${edge} 0 ${edge} 0`;
+
+        $('svg-convolve-matrix')?.setAttribute('kernelMatrix', matrix);
+        $('svg-convolve-matrix-bin')?.setAttribute('kernelMatrix', matrix);
+
+        // Update UI controls
+        const btn = $('btn-toggle-enhancer');
+        const badge = $('enhancer-badge');
+        const resetBtn = $('btn-reset-enhancer');
+        const checkboxes = $('enhancer-checkboxes');
+        const sliders = $('enhancer-sliders');
+
+        if (state.enhancer.enabled) {
+          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow-sm shadow-indigo-500/30';
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded text-[10px] bg-white/20 text-white';
+          badge.textContent = 'ON';
+          resetBtn.classList.remove('hidden');
+          checkboxes.classList.remove('hidden');
+          checkboxes.classList.add('flex');
+          sliders.classList.remove('hidden');
+          sliders.classList.add('grid');
+        } else {
+          btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:border-indigo-500';
+          badge.className = 'ml-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-700';
+          badge.textContent = 'OFF';
+          resetBtn.classList.add('hidden');
+          checkboxes.classList.add('hidden');
+          checkboxes.classList.remove('flex');
+          sliders.classList.add('hidden');
+          sliders.classList.remove('grid');
+        }
+
+        $('val-sharpness').textContent = Number(state.enhancer.sharpness).toFixed(2);
+        $('val-contrast').textContent = `${state.enhancer.contrast}%`;
+        $('val-brightness').textContent = `${state.enhancer.brightness}%`;
+        $('rng-sharpness').value = state.enhancer.sharpness;
+        $('rng-contrast').value = state.enhancer.contrast;
+        $('rng-brightness').value = state.enhancer.brightness;
+        $('chk-grayscale').checked = state.enhancer.grayscale;
+        $('chk-binarize').checked = state.enhancer.binarize;
+
+        let filterStr = 'none';
+        if (state.enhancer.enabled) {
+          const parts = [];
+          if (state.enhancer.binarize) {
+            parts.push('url(#challan-binarize-filter)');
+          } else if (s > 0.01) {
+            parts.push('url(#challan-clarity-filter)');
+          }
+          parts.push(`contrast(${state.enhancer.contrast}%)`);
+          parts.push(`brightness(${state.enhancer.brightness}%)`);
+          if (state.enhancer.grayscale && !state.enhancer.binarize) {
+            parts.push('grayscale(100%)');
+          }
+          filterStr = parts.join(' ');
+        }
+
+        ['preview-image', 'preview-pdf-canvas', 'preview-pdf-iframe'].forEach((id) => {
+          const el = $(id);
+          if (el) el.style.filter = filterStr;
+        });
+      }
+
+      // Zoom & Rotation Transform
+      function applyTransform() {
+        $('zoom-label').textContent = `${Math.round(state.zoom * 100)}%`;
+        const wrapper = $('transform-wrapper');
+        if (wrapper) {
+          wrapper.style.transform = `scale(${state.zoom}) rotate(${state.rotation}deg)`;
+        }
+      }
+
+      // Switch Scan vs Clean Digital Replica View
+      function updateViewMode() {
+        const scanTab = $('tab-view-scan');
+        const replicaTab = $('tab-view-replica');
+        const scanControls = $('scan-zoom-controls');
+        const clarityToolbar = $('clarity-toolbar');
+        const scanContainer = $('scan-view-container');
+        const replicaContainer = $('replica-view-container');
+        const dot = $('replica-ready-dot');
+
+        if (state.extractedData) {
+          dot.classList.remove('hidden');
+        } else {
+          dot.classList.add('hidden');
+        }
+
+        if (state.viewMode === 'scan') {
+          scanTab.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm';
+          replicaTab.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+          scanControls.classList.remove('hidden');
+          clarityToolbar.classList.remove('hidden');
+          scanContainer.classList.remove('hidden');
+          replicaContainer.classList.add('hidden');
+        } else {
+          replicaTab.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm';
+          scanTab.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+          scanControls.classList.add('hidden');
+          clarityToolbar.classList.add('hidden');
+          scanContainer.classList.add('hidden');
+          replicaContainer.classList.remove('hidden');
+          renderDigitalReplica();
+        }
+      }
+
+      // Render Clean Digital Replica View
+      function renderDigitalReplica() {
+        const container = $('replica-view-container');
+        if (!container) return;
+
+        const data = state.extractedData;
+        if (!data) {
+          container.innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-4 text-2xl">📄</div>
+              <h3 class="text-base font-semibold mb-1.5">Digital Clean View (ডিজিটাল ক্লিন ভিউ)</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-4">
+                Upload a Challan PDF or image (or click <strong>✨ Load Blurry Sample</strong>) to populate the structured Bangla &amp; English
+                <span class="font-bengali font-medium text-slate-700 dark:text-slate-200">টি.আর. ফরম নং-৬</span>
+                digital replica.
+              </p>
+              <button id="btn-replica-load-sample" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
+                ✨ Load Blurry Sample Data
+              </button>
+            </div>
+          `;
+          $('btn-replica-load-sample')?.addEventListener('click', () => {
+            handleLoadSample();
+            renderDigitalReplica();
+          });
+          return;
+        }
+
+        const status = String(data.confidence || data.audit_status || data.status || 'VERIFIED').toUpperCase();
+        const isReview = status.includes('REVIEW') || status.includes('WARN') || status.includes('LOW');
+
+        const fields = [
+          { labelBn: 'চালান নং', labelEn: 'Challan No', value: data.challan_no },
+          { labelBn: 'তারিখ', labelEn: 'Date', value: data.date },
+          { labelBn: 'ব্যাংকের নাম', labelEn: 'Bank Name', value: data.bank_name },
+          { labelBn: 'শাখা', labelEn: 'Branch', value: data.branch },
+          { labelBn: 'সরকারি দপ্তর / কোড', labelEn: 'Govt Office', value: data.govt_office },
+          { labelBn: 'অর্থনৈতিক কোড / খাত', labelEn: 'Purpose Code', value: data.purpose_code },
+          { labelBn: 'যাহার মারফত প্রদত্ত', labelEn: 'Paid Through', value: data.paid_through_name },
+          { labelBn: 'যাহার পক্ষ হইতে প্রদত্ত', labelEn: 'Paid On Behalf Of', value: data.paid_on_behalf_of },
+          { labelBn: 'মোট টাকার পরিমাণ', labelEn: 'Amount', value: data.amount, highlight: true },
+          { labelBn: 'কথায়', labelEn: 'Amount in Words', value: data.amount_in_words },
+          { labelBn: 'মন্তব্য', labelEn: 'Remarks', value: data.remarks },
+          { labelBn: 'সংযুক্তি সারসংক্ষেপ', labelEn: 'Attachment Summary', value: data.attachment_summary },
+        ];
+
+        const rowsHtml = fields
+          .map(
+            (f) => `
+            <div class="grid grid-cols-1 sm:grid-cols-12">
+              <div class="sm:col-span-4 bg-slate-50 px-4 py-2.5 border-b sm:border-b-0 sm:border-r border-slate-200">
+                <div class="font-bengali text-xs font-bold text-slate-800">${escapeHtml(f.labelBn)}</div>
+                <div class="text-[11px] font-medium text-slate-500">${escapeHtml(f.labelEn)}</div>
+              </div>
+              <div class="sm:col-span-8 px-4 py-2.5 text-sm font-bengali break-words ${
+                f.highlight ? 'font-bold text-indigo-700 text-base bg-indigo-50/50' : 'text-slate-800'
+              }">
+                ${f.value ? escapeHtml(f.value) : '<span class="text-slate-400 italic text-xs">Not extracted</span>'}
+              </div>
+            </div>
+          `
+          )
+          .join('');
+
+        container.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide ${
+                isReview
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30'
+                  : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+              }">
+                <span class="w-2 h-2 rounded-full ${isReview ? 'bg-amber-500' : 'bg-emerald-500'}"></span>
+                ${isReview ? 'NEEDS_REVIEW' : 'VERIFIED'}
+              </span>
+              ${
+                state.currentFile?.name
+                  ? `<span class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">${escapeHtml(state.currentFile.name)}</span>`
+                  : ''
+              }
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle-json" type="button" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                ${state.showRawJson ? 'Table View' : '{ } JSON'}
+              </button>
+              <button id="btn-print-challan" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">
+                🖨️ Print Challan
+              </button>
+            </div>
+          </div>
+
+          ${
+            state.showRawJson
+              ? `<pre class="p-4 rounded-xl bg-slate-900 text-emerald-300 text-xs overflow-x-auto border border-slate-700">${escapeHtml(
+                  JSON.stringify(data, null, 2)
+                )}</pre>`
+              : `<div id="printable-challan" class="bg-white text-slate-900 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm overflow-hidden">
+                  <div class="bg-slate-100 border-b border-slate-300 px-5 py-4 text-center">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Government of the People's Republic of Bangladesh — A-Challan Digital Replica
+                    </p>
+                    <h2 class="font-bengali text-xl font-bold text-slate-900 mt-1">চালান ফরম — টি.আর. ফরম নং-৬</h2>
+                    <p class="text-xs text-slate-600 mt-0.5">ট্রেজারি / অনুমোদিত ব্যাংকে টাকা জমার ডিজিটাল প্রতিলিপি</p>
+                  </div>
+                  <div class="divide-y divide-slate-200">${rowsHtml}</div>
+                </div>`
+          }
+        `;
+
+        $('btn-toggle-json')?.addEventListener('click', () => {
+          state.showRawJson = !state.showRawJson;
+          renderDigitalReplica();
+        });
+        $('btn-print-challan')?.addEventListener('click', () => window.print());
+      }
+
+      // Generate Sample Blurry Challan on Canvas
+      function generateSampleBlurryChallanDataUrl() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 960;
+        canvas.height = 1240;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#edf0f2';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.filter = 'blur(0.85px)';
+
+        ctx.fillStyle = '#1e293b';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 26px "Hind Siliguri", sans-serif';
+        ctx.fillText('চালান ফরম — টি.আর. ফরম নং-৬', 480, 72);
+        ctx.font = '18px Inter, sans-serif';
+        ctx.fillText('CHALLAN FORM (T.R. FORM NO. 6) — BANGLADESH TREASURY', 480, 105);
+
+        ctx.textAlign = 'left';
+        ctx.font = '18px "Hind Siliguri", sans-serif';
+        ctx.fillStyle = '#334155';
+        ctx.fillText('চালান নং (Challan No): CH-2026-084921', 64, 165);
+        ctx.fillText('তারিখ (Date): ১৪/১১/২০২৬ (14-11-2026)', 570, 165);
+        ctx.fillText('ব্যাংক ও শাখা: Pubali Bank PLC, Motijheel Corporate Branch', 64, 202);
+
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(54, 235, 852, 650);
+        [320, 460, 620, 760].forEach((y) => {
+          ctx.beginPath();
+          ctx.moveTo(54, y);
+          ctx.lineTo(906, y);
+          ctx.stroke();
+        });
+        [340, 660].forEach((x) => {
+          ctx.beginPath();
+          ctx.moveTo(x, 235);
+          ctx.lineTo(x, 885);
+          ctx.stroke();
+        });
+
+        ctx.font = 'bold 17px "Hind Siliguri", sans-serif';
+        ctx.fillText('যাহার মারফত প্রদত্ত হইল', 70, 275);
+        ctx.fillText('যে ব্যক্তির/প্রতিষ্ঠানের পক্ষ হইতে প্রদত্ত', 355, 275);
+        ctx.fillText('টাকার অংক (Amount)', 680, 275);
+
+        ctx.font = '17px "Hind Siliguri", sans-serif';
+        ctx.fillText('Md. Rafiqul Islam', 70, 365);
+        ctx.fillText('Accounts Manager', 70, 395);
+
+        ctx.fillText('Bengal Tech & Engineering Ltd.', 355, 365);
+        ctx.fillText('TIN: 492817462011', 355, 395);
+
+        ctx.font = 'bold 22px Inter, sans-serif';
+        ctx.fillText('৳ 45,500.00', 690, 385);
+
+        ctx.font = '17px "Hind Siliguri", sans-serif';
+        ctx.fillText('জমার খাত / অর্থনৈতিক কোড:', 70, 505);
+        ctx.fillText('1-1141-0010-0111', 70, 535);
+        ctx.fillText('উৎসে কর (AIT @ 5% against INV-9921)', 355, 505);
+        ctx.fillText('Deputy Commissioner of Taxes, Zone-04', 355, 535);
+        ctx.fillText('৪৫,৫০০/- মাত্র', 690, 520);
+
+        ctx.fillText('কথায় (In Words): চল্লিশ পাঁচ হাজার পাঁচশত টাকা মাত্র (Forty-Five Thousand Five Hundred Taka Only)', 70, 675);
+        ctx.fillText('মন্তব্য: AIT deducted against Page-2 Invoice (Gross ৳9,10,000)', 70, 815);
+
+        ctx.save();
+        ctx.translate(740, 995);
+        ctx.rotate(-0.18);
+        ctx.strokeStyle = 'rgba(37, 99, 235, 0.45)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 72, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.55)';
+        ctx.font = 'bold 14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PUBALI BANK PLC', 0, -10);
+        ctx.fillText('CASH RECEIVED', 0, 12);
+        ctx.fillText('14 NOV 2026', 0, 34);
+        ctx.restore();
+
+        ctx.filter = 'none';
+        return canvas.toDataURL('image/png');
+      }
+
+      // Render Preview Surface (Image or PDF)
+      function renderDocumentSurface() {
+        const emptyDropzone = $('empty-dropzone');
+        const renderedSurface = $('rendered-surface');
+        const imgEl = $('preview-image');
+        const canvasEl = $('preview-pdf-canvas');
+        const iframeEl = $('preview-pdf-iframe');
+        const pdfControls = $('pdf-page-controls');
+
+        if (!state.previewUrl) {
+          emptyDropzone.classList.remove('hidden');
+          renderedSurface.classList.add('hidden');
+          renderedSurface.classList.remove('flex');
+          pdfControls.classList.add('hidden');
+          return;
+        }
+
+        emptyDropzone.classList.add('hidden');
+        renderedSurface.classList.remove('hidden');
+        renderedSurface.classList.add('flex');
+
+        imgEl.classList.add('hidden');
+        canvasEl.classList.add('hidden');
+        iframeEl.classList.add('hidden');
+        pdfControls.classList.add('hidden');
+
+        if (!state.isPdf) {
+          imgEl.src = state.previewUrl;
+          imgEl.classList.remove('hidden');
+          applyEnhancerFilters();
+          return;
+        }
+
+        // Render PDF via PDF.js if available, fallback to iframe
+        if (window.pdfjsLib) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+          window.pdfjsLib
+            .getDocument(state.previewUrl)
+            .promise.then((doc) => {
+              state.pdfDoc = doc;
+              state.pdfPage = 1;
+              state.pdfTotalPages = doc.numPages;
+              canvasEl.classList.remove('hidden');
+              if (doc.numPages > 1) {
+                pdfControls.classList.remove('hidden');
+                pdfControls.classList.add('flex');
+              }
+              renderPdfPage(1);
+            })
+            .catch(() => {
+              iframeEl.src = state.previewUrl;
+              iframeEl.classList.remove('hidden');
+              applyEnhancerFilters();
+            });
+        } else {
+          iframeEl.src = state.previewUrl;
+          iframeEl.classList.remove('hidden');
+          applyEnhancerFilters();
+        }
+      }
+
+      function renderPdfPage(pageNum) {
+        if (!state.pdfDoc) return;
+        state.pdfDoc.getPage(pageNum).then((page) => {
+          const viewport = page.getViewport({ scale: 2.0 });
+          const canvas = $('preview-pdf-canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          page.render({ canvasContext: ctx, viewport });
+          $('pdf-page-indicator').textContent = `${pageNum}/${state.pdfTotalPages}`;
+          $('btn-pdf-prev').disabled = pageNum <= 1;
+          $('btn-pdf-next').disabled = pageNum >= state.pdfTotalPages;
+          applyEnhancerFilters();
+        });
+      }
+
+      function handleLoadSample() {
+        if (state.previewUrl && state.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(state.previewUrl);
+        }
+        state.previewUrl = generateSampleBlurryChallanDataUrl();
+        state.currentFile = { name: 'Sample_Blurry_TR_Form_6.png', type: 'image/png' };
+        state.isPdf = false;
+        state.extractedData = { ...SAMPLE_EXTRACTED_DATA };
+        renderDocumentSurface();
+        updateViewMode();
+        showToast('Loaded blurry sample Challan! Toggle ✨ Clarity Enhancer to sharpen.', 'info');
+      }
+
+      // Upload Stepper UI
+      function updateUploadStepper(step) {
+        const stepper = $('upload-stepper');
+        const pills = $('stepper-pills');
+        if (!step) {
+          stepper.classList.add('hidden');
+          return;
+        }
+        stepper.classList.remove('hidden');
+        const steps = [
+          { id: 1, label: '1. Uploading to Drive' },
+          { id: 2, label: '2. Enhancing & Running Bangla Vision OCR' },
+          { id: 3, label: '3. Writing to Excel & Indexing RAG' },
+        ];
+        pills.innerHTML = steps
+          .map((s, idx) => {
+            const isDone = step > s.id;
+            const isCurrent = step === s.id;
+            const cls = isDone
+              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+              : isCurrent
+              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
+              : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-transparent';
+            const icon = isDone
+              ? '✓'
+              : isCurrent
+              ? '<span class="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>'
+              : '•';
+            return `
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${cls}">
+                <span>${icon}</span>
+                <span>${escapeHtml(s.label)}</span>
+              </div>
+              ${idx < steps.length - 1 ? '<span class="hidden md:inline text-slate-400 text-xs">➔</span>' : ''}
+            `;
+          })
+          .join('');
+      }
+
+      function normalizeExtractedPayload(raw) {
+        if (!raw) return null;
+        let candidate = Array.isArray(raw) && raw.length > 0 ? raw[0] : raw;
+        if (typeof candidate === 'string') {
+          try {
+            candidate = JSON.parse(candidate);
+          } catch (_) {
+            return { message: candidate };
+          }
+        }
+        if (candidate?.data && typeof candidate.data === 'object') candidate = candidate.data;
+        if (candidate?.extractedData && typeof candidate.extractedData === 'object') candidate = candidate.extractedData;
+        if (candidate?.challan && typeof candidate.challan === 'object') candidate = candidate.challan;
+        return candidate;
+      }
+
+      function hasChallanFields(obj) {
+        if (!obj || typeof obj !== 'object') return false;
+        return ['challan_no', 'bank_name', 'amount', 'govt_office', 'purpose_code', 'paid_through_name'].some((k) =>
+          Boolean(obj[k])
+        );
+      }
+
+      // Upload File to n8n Webhook
+      async function uploadFileToN8n(file) {
+        if (!file) return;
+        state.isUploading = true;
+        $('btn-top-upload').disabled = true;
+        $('btn-top-upload-label').textContent = 'Processing...';
+        updateUploadStepper(1);
+
+        const t1 = setTimeout(() => updateUploadStepper(2), 1400);
+        const t2 = setTimeout(() => updateUploadStepper(3), 3600);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('fileName', file.name);
+          formData.append('mimeType', file.type);
+
+          const res = await fetch(state.settings.uploadWebhookUrl, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+
+          const rawText = await res.text();
+          let parsedJson = null;
+          try {
+            parsedJson = rawText ? JSON.parse(rawText) : null;
+          } catch (_) {}
+
+          if (!res.ok) {
+            throw new Error(
+              parsedJson?.message || parsedJson?.error || rawText || `n8n returned HTTP ${res.status}`
+            );
+          }
+
+          const normalized = normalizeExtractedPayload(parsedJson);
+          if (normalized && hasChallanFields(normalized)) {
+            state.extractedData = normalized;
+            updateViewMode();
+          }
+
+          state.sheetRefreshNonce += 1;
+          updateSheetIframe();
+          playChime('success');
+
+          showWorkflowModal({
+            status: 'success',
+            fileName: file.name,
+            extractedData: normalized,
+            message:
+              normalized?.message ||
+              (typeof parsedJson === 'string' ? parsedJson : null) ||
+              'Document uploaded to Drive, extracted, saved to Google Sheets, and indexed into Pinecone.',
+          });
+        } catch (err) {
+          playChime('error');
+          let errorMessage = err.message || 'Unknown error occurred.';
+          let errorHint =
+            'Ensure your n8n workflow is Active, listening on the exact Webhook URL, and CORS is enabled.';
+          if (err.name === 'AbortError') {
+            errorMessage = 'Request Timed Out (120s) while waiting for n8n Gemini Vision OCR.';
+          } else if (err instanceof TypeError || /failed to fetch/i.test(errorMessage)) {
+            errorMessage = `CORS / Webhook Unreachable — Cannot connect to ${state.settings.uploadWebhookUrl}`;
+          }
+          showWorkflowModal({ status: 'error', errorMessage, errorHint });
+        } finally {
+          clearTimeout(t1);
+          clearTimeout(t2);
+          clearTimeout(timeoutId);
+          state.isUploading = false;
+          $('btn-top-upload').disabled = false;
+          $('btn-top-upload-label').textContent = 'Upload Challan';
+          updateUploadStepper(0);
+        }
+      }
+
+      function handleFileSelected(file) {
+        const validTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+        const extOk = /\.(pdf|png|jpe?g)$/i.test(file.name);
+        if (!validTypes.includes(file.type) && !extOk) {
+          showToast('Unsupported file type. Please upload PDF, PNG, or JPG.', 'error');
+          return;
+        }
+        if (state.previewUrl && state.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(state.previewUrl);
+        }
+        state.currentFile = file;
+        state.previewUrl = URL.createObjectURL(file);
+        state.isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        renderDocumentSurface();
+        uploadFileToN8n(file);
+      }
+
+      // Workflow Result Popup Modal
+      function showWorkflowModal(result) {
+        const modal = $('workflow-modal');
+        const content = $('workflow-modal-content');
+        const isSuccess = result.status === 'success';
+        const data = result.extractedData || {};
+
+        content.innerHTML = `
+          <div class="px-6 py-5 flex items-start gap-4 border-b ${
+            isSuccess ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'
+          }">
+            <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${
+              isSuccess ? 'bg-emerald-500' : 'bg-rose-500'
+            }">
+              ${isSuccess ? '✓' : '!'}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-base font-bold">
+                ${isSuccess ? '✅ Document Processed & Saved Successfully!' : '❌ Workflow Execution Failed'}
+              </h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                ${
+                  isSuccess
+                    ? 'n8n archived the scan to Google Drive, extracted fields via Gemini Vision OCR, appended Google Sheets, and indexed into Pinecone.'
+                    : 'The n8n document pipeline could not complete this request.'
+                }
+              </p>
+            </div>
+            <button id="btn-modal-close" type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+          </div>
+          <div class="p-6">
+            ${
+              isSuccess
+                ? `<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-4 space-y-2.5 text-xs">
+                    <div class="flex justify-between gap-3">
+                      <span class="text-slate-500">File Name</span>
+                      <span class="font-semibold text-right truncate max-w-[260px]">${escapeHtml(result.fileName || 'Document')}</span>
+                    </div>
+                    ${
+                      hasChallanFields(data)
+                        ? `
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Challan No</span><span class="font-mono font-semibold">${escapeHtml(data.challan_no || '—')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Total Amount (৳)</span><span class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">${escapeHtml(data.amount || '—')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Bank Name</span><span class="font-medium text-right">${escapeHtml(data.bank_name || '—')}</span></div>
+                      `
+                        : `<div class="pt-2 border-t border-slate-200 dark:border-slate-800"><p class="font-medium">${escapeHtml(result.message)}</p></div>`
+                    }
+                  </div>`
+                : `<div class="rounded-xl border border-rose-500/25 bg-rose-500/5 p-4 text-xs space-y-2">
+                    <p class="font-semibold text-rose-700 dark:text-rose-300">Diagnostic Details</p>
+                    <p class="text-slate-700 dark:text-slate-200 leading-relaxed break-words">${escapeHtml(result.errorMessage)}</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-rose-500/15">💡 ${escapeHtml(result.errorHint)}</p>
+                  </div>`
+            }
+            <div class="flex flex-wrap items-center justify-end gap-2 mt-5">
+              <button id="btn-modal-dismiss" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                Close
+              </button>
+              ${
+                isSuccess
+                  ? `<button id="btn-modal-sheet" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition">📊 View in Google Sheet</button>`
+                  : `<button id="btn-modal-settings" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">⚙️ Check Webhook Settings</button>
+                     <button id="btn-modal-retry" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition">🔄 Retry Upload</button>`
+              }
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const closeModal = () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        };
+        $('btn-modal-close')?.addEventListener('click', closeModal);
+        $('btn-modal-dismiss')?.addEventListener('click', closeModal);
+        $('btn-modal-sheet')?.addEventListener('click', () => {
+          closeModal();
+          state.sheetRefreshNonce += 1;
+          updateSheetIframe();
+        });
+        $('btn-modal-settings')?.addEventListener('click', () => {
+          closeModal();
+          openSettingsModal();
+        });
+        $('btn-modal-retry')?.addEventListener('click', () => {
+          closeModal();
+          if (state.currentFile instanceof File) {
+            uploadFileToN8n(state.currentFile);
+          } else {
+            $('top-file-input').click();
+          }
+        });
+      }
+
+      // Google Sheet Iframe URL Builder
+      function buildSheetUrl(baseUrl, gid, nonce, minimal) {
+        try {
+          const url = new URL(baseUrl);
+          url.searchParams.set('gid', gid);
+          if (minimal) url.searchParams.set('rm', 'minimal');
+          else url.searchParams.delete('rm');
+          if (nonce) url.searchParams.set('_cb', String(nonce));
+          url.hash = `gid=${gid}`;
+          return url.toString();
+        } catch (_) {
+          const clean = baseUrl.split('?')[0];
+          return `${clean}?gid=${gid}${minimal ? '&rm=minimal' : ''}${nonce ? `&_cb=${nonce}` : ''}#gid=${gid}`;
+        }
+      }
+
+      function updateSheetIframe() {
+        const iframe = $('sheet-iframe');
+        const extLink = $('link-external-sheet');
+        if (iframe) {
+          iframe.src = buildSheetUrl(state.settings.googleSheetUrl, state.activeSheetGid, state.sheetRefreshNonce, true);
+        }
+        if (extLink) {
+          extLink.href = buildSheetUrl(state.settings.googleSheetUrl, state.activeSheetGid, null, false);
+        }
+        document.querySelectorAll('.sheet-tab-btn').forEach((btn) => {
+          const gid = btn.getAttribute('data-sheet-gid');
+          if (gid === state.activeSheetGid) {
+            btn.className = 'sheet-tab-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow-sm shadow-emerald-600/25';
+          } else {
+            btn.className = 'sheet-tab-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300/70 dark:hover:bg-slate-700';
+          }
+        });
+      }
+
+      // AI Chat Widget
+      function renderSafeMarkdown(text) {
+        if (!text) return '';
+        try {
+          const raw = window.marked ? window.marked.parse(String(text)) : escapeHtml(text);
+          return window.DOMPurify ? window.DOMPurify.sanitize(raw) : raw;
+        } catch (_) {
+          return escapeHtml(text);
+        }
+      }
+
+      function renderChatMessages() {
+        const box = $('chat-messages');
+        if (!box) return;
+
+        if (state.chatMessages.length === 0) {
+          box.innerHTML = `
+            <div class="space-y-3 py-2">
+              <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Ask questions in <strong>Bangla or English</strong> about uploaded Treasury Challans, AIT deductions, bank branches, or vendor invoices indexed in Pinecone.
+              </div>
+              <div class="space-y-1.5">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Suggestions</p>
+                ${QUICK_PROMPTS.map(
+                  (q) => `
+                  <button type="button" data-prompt="${escapeHtml(q)}" class="quick-prompt-btn w-full text-left px-3 py-2 rounded-xl text-xs font-bengali bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200/70 dark:border-indigo-500/25 text-indigo-700 dark:text-indigo-200 transition">
+                    ${escapeHtml(q)}
+                  </button>
+                `
+                ).join('')}
+              </div>
+            </div>
+          `;
+          box.querySelectorAll('.quick-prompt-btn').forEach((btn) => {
+            btn.addEventListener('click', () => sendChatMessage(btn.getAttribute('data-prompt')));
+          });
+          return;
+        }
+
+        box.innerHTML =
+          state.chatMessages
+            .map((m) => {
+              if (m.role === 'user') {
+                return `
+                  <div class="flex justify-end">
+                    <div class="max-w-[88%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed bg-indigo-600 text-white font-bengali">
+                      ${escapeHtml(m.text)}
+                    </div>
+                  </div>
+                `;
+              }
+              return `
+                <div class="flex justify-start">
+                  <div class="max-w-[88%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed ${
+                    m.isError
+                      ? 'bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300'
+                      : 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100'
+                  }">
+                    <div class="ai-markdown font-bengali">${renderSafeMarkdown(m.text)}</div>
+                  </div>
+                </div>
+              `;
+            })
+            .join('') +
+          (state.isChatSending
+            ? `<div class="flex justify-start">
+                <div class="px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+                  Thinking...
+                </div>
+              </div>`
+            : '');
+
+        box.scrollTop = box.scrollHeight;
+      }
+
+      async function sendChatMessage(textOverride) {
+        const inputEl = $('chat-input');
+        const query = (textOverride ?? inputEl.value).trim();
+        if (!query || state.isChatSending) return;
+
+        state.chatMessages.push({ role: 'user', text: query });
+        if (!textOverride) inputEl.value = '';
+        state.isChatSending = true;
+        renderChatMessages();
+
+        try {
+          const res = await fetch(state.settings.chatWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sendMessage',
+              sessionId: state.chatSessionId,
+              chatInput: query,
+            }),
+          });
+
+          const rawText = await res.text();
+          let replyText = rawText;
+          try {
+            const parsed = JSON.parse(rawText);
+            const item = Array.isArray(parsed) ? parsed[0] : parsed;
+            replyText =
+              item?.output ||
+              item?.text ||
+              item?.response ||
+              item?.message ||
+              item?.answer ||
+              (typeof item === 'string' ? item : JSON.stringify(item, null, 2));
+          } catch (_) {}
+
+          if (!res.ok) throw new Error(replyText || `HTTP ${res.status}`);
+
+          state.chatMessages.push({
+            role: 'assistant',
+            text: replyText || 'No response returned by n8n AI Agent.',
+          });
+        } catch (err) {
+          state.chatMessages.push({
+            role: 'assistant',
+            isError: true,
+            text: `**Connection Error:** Could not reach \`${state.settings.chatWebhookUrl}\`. Verify your n8n Chat Workflow is Active and CORS is allowed.`,
+          });
+        } finally {
+          state.isChatSending = false;
+          renderChatMessages();
+        }
+      }
+
+      // Settings Modal
+      function openSettingsModal() {
+        $('inp-upload-webhook').value = state.settings.uploadWebhookUrl;
+        $('inp-chat-webhook').value = state.settings.chatWebhookUrl;
+        $('inp-sheet-url').value = state.settings.googleSheetUrl;
+        $('settings-modal').classList.remove('hidden');
+        $('settings-modal').classList.add('flex');
+      }
+
+      function closeSettingsModal() {
+        $('settings-modal').classList.add('hidden');
+        $('settings-modal').classList.remove('flex');
+      }
+
+      // Initialize Event Listeners
+      function init() {
+        applyTheme();
+        applyEnhancerFilters();
+        applyTransform();
+        updateSheetIframe();
+        renderChatMessages();
+
+        // Automatically load the sample blurry Challan on first visit so the screen is immediately rich & interactive
+        handleLoadSample();
+
+        // Theme toggle
+        $('btn-theme-toggle').addEventListener('click', () => {
+          state.theme = state.theme === 'dark' ? 'light' : 'dark';
+          applyTheme();
+        });
+
+        // Upload buttons
+        $('btn-top-upload').addEventListener('click', () => $('top-file-input').click());
+        $('btn-center-upload').addEventListener('click', () => $('top-file-input').click());
+        $('top-file-input').addEventListener('change', (e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFileSelected(f);
+          e.target.value = '';
+        });
+
+        // Load sample button
+        $('btn-load-sample').addEventListener('click', handleLoadSample);
+
+        // Drag and drop
+        const dropzone = $('viewer-dropzone');
+        const dragOverlay = $('drag-overlay');
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dragOverlay.classList.remove('hidden');
+          dragOverlay.classList.add('flex');
+        });
+        dropzone.addEventListener('dragleave', () => {
+          dragOverlay.classList.add('hidden');
+          dragOverlay.classList.remove('flex');
+        });
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dragOverlay.classList.add('hidden');
+          dragOverlay.classList.remove('flex');
+          const f = e.dataTransfer?.files?.[0];
+          if (f) handleFileSelected(f);
+        });
+
+        // View mode tabs
+        $('tab-view-scan').addEventListener('click', () => {
+          state.viewMode = 'scan';
+          updateViewMode();
+        });
+        $('tab-view-replica').addEventListener('click', () => {
+          state.viewMode = 'replica';
+          updateViewMode();
+        });
+
+        // Zoom / Rotate / Fullscreen / PDF navigation
+        $('btn-zoom-in').addEventListener('click', () => {
+          state.zoom = Math.min(3, +(state.zoom + 0.15).toFixed(2));
+          applyTransform();
+        });
+        $('btn-zoom-out').addEventListener('click', () => {
+          state.zoom = Math.max(0.4, +(state.zoom - 0.15).toFixed(2));
+          applyTransform();
+        });
+        $('btn-rotate').addEventListener('click', () => {
+          state.rotation = (state.rotation + 90) % 360;
+          applyTransform();
+        });
+        $('btn-fullscreen').addEventListener('click', () => {
+          state.isFullscreen = !state.isFullscreen;
+          const leftPane = $('left-pane');
+          if (state.isFullscreen) {
+            leftPane.classList.add('fixed', 'inset-0', 'z-50');
+          } else {
+            leftPane.classList.remove('fixed', 'inset-0', 'z-50');
+          }
+        });
+        $('btn-pdf-prev').addEventListener('click', () => {
+          if (state.pdfPage > 1) {
+            state.pdfPage -= 1;
+            renderPdfPage(state.pdfPage);
+          }
+        });
+        $('btn-pdf-next').addEventListener('click', () => {
+          if (state.pdfPage < state.pdfTotalPages) {
+            state.pdfPage += 1;
+            renderPdfPage(state.pdfPage);
+          }
+        });
+
+        // Clarity Enhancer controls
+        $('btn-toggle-enhancer').addEventListener('click', () => {
+          state.enhancer.enabled = !state.enhancer.enabled;
+          applyEnhancerFilters();
+        });
+        $('btn-reset-enhancer').addEventListener('click', () => {
+          state.enhancer = { ...DEFAULT_ENHANCER, enabled: true };
+          applyEnhancerFilters();
+        });
+        $('rng-sharpness').addEventListener('input', (e) => {
+          state.enhancer.sharpness = parseFloat(e.target.value);
+          applyEnhancerFilters();
+        });
+        $('rng-contrast').addEventListener('input', (e) => {
+          state.enhancer.contrast = parseInt(e.target.value, 10);
+          applyEnhancerFilters();
+        });
+        $('rng-brightness').addEventListener('input', (e) => {
+          state.enhancer.brightness = parseInt(e.target.value, 10);
+          applyEnhancerFilters();
+        });
+        $('chk-grayscale').addEventListener('change', (e) => {
+          state.enhancer.grayscale = e.target.checked;
+          applyEnhancerFilters();
+        });
+        $('chk-binarize').addEventListener('change', (e) => {
+          state.enhancer.binarize = e.target.checked;
+          applyEnhancerFilters();
+        });
+
+        // Split Pane Resizer
+        let isResizing = false;
+        $('split-resizer').addEventListener('mousedown', () => {
+          isResizing = true;
+          document.body.style.cursor = 'col-resize';
+        });
+        window.addEventListener('mousemove', (e) => {
+          if (!isResizing) return;
+          const rect = $('split-container').getBoundingClientRect();
+          const pct = Math.min(72, Math.max(28, ((e.clientX - rect.left) / rect.width) * 100));
+          $('split-container').style.setProperty('--split-left', `${pct}%`);
+          $('split-container').style.setProperty('--split-right', `${100 - pct}%`);
+        });
+        window.addEventListener('mouseup', () => {
+          isResizing = false;
+          document.body.style.cursor = '';
+        });
+
+        // Google Sheet Tabs & Refresh
+        document.querySelectorAll('.sheet-tab-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.activeSheetGid = btn.getAttribute('data-sheet-gid');
+            updateSheetIframe();
+          });
+        });
+        $('btn-refresh-sheet').addEventListener('click', () => {
+          state.sheetRefreshNonce += 1;
+          updateSheetIframe();
+          showToast('Google Sheet refreshed.', 'info');
+        });
+
+        // Mobile Tabs
+        document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-mobile-tab');
+            document.querySelectorAll('.mobile-tab-btn').forEach((b) => {
+              b.className = 'mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition';
+            });
+            btn.className = 'mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800/50 transition';
+
+            if (tab === 'viewer') {
+              $('left-pane').classList.remove('hidden');
+              $('left-pane').classList.add('flex');
+              $('right-pane').classList.add('hidden');
+              $('right-pane').classList.remove('flex');
+              $('chat-widget').classList.add('hidden');
+              $('chat-widget').classList.remove('flex');
+            } else if (tab === 'sheet') {
+              $('left-pane').classList.add('hidden');
+              $('left-pane').classList.remove('flex');
+              $('right-pane').classList.remove('hidden');
+              $('right-pane').classList.add('flex');
+              $('chat-widget').classList.add('hidden');
+              $('chat-widget').classList.remove('flex');
+            } else if (tab === 'chat') {
+              $('chat-widget').classList.remove('hidden');
+              $('chat-widget').classList.add('flex');
+            }
+          });
+        });
+
+        // Chat Widget Open / Close / Reset / Submit
+        $('btn-chat-fab').addEventListener('click', () => {
+          $('chat-widget').classList.remove('hidden');
+          $('chat-widget').classList.add('flex');
+          $('btn-chat-fab').classList.add('hidden');
+        });
+        $('btn-chat-close').addEventListener('click', () => {
+          $('chat-widget').classList.add('hidden');
+          $('chat-widget').classList.remove('flex');
+          $('btn-chat-fab').classList.remove('hidden');
+        });
+        $('btn-chat-reset').addEventListener('click', () => {
+          state.chatSessionId = 'challanai-' + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem(STORAGE_KEYS.CHAT_SESSION, state.chatSessionId);
+          state.chatMessages = [];
+          renderChatMessages();
+          showToast('Started a new AI RAG conversation session.', 'info');
+        });
+        $('chat-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          sendChatMessage();
+        });
+
+        // Settings Modal
+        $('btn-open-settings').addEventListener('click', openSettingsModal);
+        $('btn-close-settings').addEventListener('click', closeSettingsModal);
+        $('btn-cancel-settings').addEventListener('click', closeSettingsModal);
+        $('btn-restore-defaults').addEventListener('click', () => {
+          $('inp-upload-webhook').value = DEFAULT_SETTINGS.uploadWebhookUrl;
+          $('inp-chat-webhook').value = DEFAULT_SETTINGS.chatWebhookUrl;
+          $('inp-sheet-url').value = DEFAULT_SETTINGS.googleSheetUrl;
+        });
+        $('settings-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          state.settings = {
+            uploadWebhookUrl: $('inp-upload-webhook').value.trim(),
+            chatWebhookUrl: $('inp-chat-webhook').value.trim(),
+            googleSheetUrl: $('inp-sheet-url').value.trim(),
+          };
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+          updateSheetIframe();
+          closeSettingsModal();
+          showToast('Settings saved to browser localStorage.', 'success');
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

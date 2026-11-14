@@ -1,0 +1,431 @@
+{
+  "name": "My workflow 2 (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-challan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3c79530a-8ad8-46c5-b4a5-e4dcd0fe2452",
+      "name": "Webhook",
+      "webhookId": "10249565-cfda-4766-ab1d-6b50165a3c46"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "file",
+        "name": "={{ $binary.file.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "11RRbUJnCdJ3f29Tm7HIR3AR32bpMbdbA",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3f191a33-4913-4a20-a4ef-66fb46ad527d",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PMvc8jYylHFdIgyG",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "d752ee1f-fa37-44f9-8ca6-47fc30517b43",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PMvc8jYylHFdIgyG",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "113d3a61-2da2-41ed-8b8d-cbe880f9201a",
+              "leftValue": "={{ $binary.data.mimeType }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "a781580d-27ff-4ddd-a8a3-e9338347e3f4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "text": "You are an expert Bangladeshi Financial & Tax Document Auditor specializing in reading blurry scanned Bangla A-Challan (টি.আর. ফরম নং-৬) and attached commercial invoices/certificates.\n\nCRITICAL ACCURACY RULES FOR BLURRY BANGLA PDFS:\n1. Triple-Copy Cross-Verification: Each Challan page contains 3 identical copies (ব্যাংকের কপি, গ্রাহকের কপি, সরকারি অফিসের কপি). If a character or number is blurry in one copy, cross-check the other two copies and the top/bottom verification URLs (e.g., challanNo=...) to reconstruct the exact text.\n2. Amount Cross-Verification: Compare 'জমার পরিমাণ / মোট (অংকে)' with 'টাকা (কথায়)' (Amount in words). If the digits are blurry (e.g., looks like ১,২৯০,১২২ or ৩,২৯০,০১১), use the Bangla words (e.g., 'বত্রিশ লক্ষ নব্বই হাজার পাঁচ শত দশ' = 3290510.00) to output the 100% mathematically accurate number!\n3. Digit Normalization: Convert all Bangla digits (০-৯) in dates, challan numbers, and amounts into standard English digits (0-9) for structured fields, except keep Bangla text in `amount_in_words`, `govt_office`, and `remarks`.\n4. Second Page / Attachments: Inspect page 2 (if present) for invoice tables (like DACR invoices) or AIT deduction certificates/stamps and summarize them completely inside `attachment_summary` and `full_markdown_transcription`.\n\nReturn ONLY valid JSON matching this exact schema (no markdown code blocks, no extra explanation):\n{\n  \"challan_no\": \"String (e.g., 2627-0017029461)\",\n  \"date\": \"DD/MM/YYYY\",\n  \"bank_name\": \"String (clean Bangla or English bank name)\",\n  \"branch\": \"String (branch name)\",\n  \"govt_office\": \"String (যে সরকারি প্রতিষ্ঠানের অনুকূলে অর্থ জমা হচ্ছে)\",\n  \"paid_through_name\": \"String (যার মাধ্যমে টাকা প্রদত্ত হলো তার নাম ও ঠিকানা)\",\n  \"paid_on_behalf_of\": \"String (যে ব্যক্তির/প্রতিষ্ঠানের পক্ষ হতে টাকা প্রদত্ত হলো)\",\n  \"purpose_code\": \"String (e.g., 1112101 - কোম্পানিসমূহ কর্তৃক দেয় আয়কর & নতুন কোড)\",\n  \"amount\": \"Number as string with 2 decimals, commas removed (e.g., 3290510.00)\",\n  \"amount_in_words\": \"String (exact clean Bangla words from টাকা (কথায়))\",\n  \"remarks\": \"String (অন্যান্য বিবরণ/মন্তব্য, করবর্ষ, ধারা, CD/Source Tax details)\",\n  \"attachment_summary\": \"String (Full details of Page 2 tables, invoice numbers, AIT deducted amounts, or signatory stamps)\",\n  \"confidence_status\": \"VERIFIED or NEEDS_REVIEW\",\n  \"verification_notes\": \"Explain any blurry text repaired via Amount-in-Words or 3-copy cross-check\",\n  \"full_markdown_transcription\": \"Complete Bangla + English markdown transcription of all pages and tables for RAG vector search\"\n}",
+        "inputType": "binary",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        -192
+      ],
+      "id": "8b63172c-80ce-48f5-83ed-07f839c73dff",
+      "name": "Analyze document",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "text": "You are an expert Bangladeshi Financial & Tax Document Auditor specializing in reading blurry scanned Bangla A-Challan (টি.আর. ফরম নং-৬) and attached commercial invoices/certificates.\n\nCRITICAL ACCURACY RULES FOR BLURRY BANGLA PDFS:\n1. Triple-Copy Cross-Verification: Each Challan page contains 3 identical copies (ব্যাংকের কপি, গ্রাহকের কপি, সরকারি অফিসের কপি). If a character or number is blurry in one copy, cross-check the other two copies and the top/bottom verification URLs (e.g., challanNo=...) to reconstruct the exact text.\n2. Amount Cross-Verification: Compare 'জমার পরিমাণ / মোট (অংকে)' with 'টাকা (কথায়)' (Amount in words). If the digits are blurry (e.g., looks like ১,২৯০,১২২ or ৩,২৯০,০১১), use the Bangla words (e.g., 'বত্রিশ লক্ষ নব্বই হাজার পাঁচ শত দশ' = 3290510.00) to output the 100% mathematically accurate number!\n3. Digit Normalization: Convert all Bangla digits (০-৯) in dates, challan numbers, and amounts into standard English digits (0-9) for structured fields, except keep Bangla text in `amount_in_words`, `govt_office`, and `remarks`.\n4. Second Page / Attachments: Inspect page 2 (if present) for invoice tables (like DACR invoices) or AIT deduction certificates/stamps and summarize them completely inside `attachment_summary` and `full_markdown_transcription`.\n\nReturn ONLY valid JSON matching this exact schema (no markdown code blocks, no extra explanation):\n{\n  \"challan_no\": \"String (e.g., 2627-0017029461)\",\n  \"date\": \"DD/MM/YYYY\",\n  \"bank_name\": \"String (clean Bangla or English bank name)\",\n  \"branch\": \"String (branch name)\",\n  \"govt_office\": \"String (যে সরকারি প্রতিষ্ঠানের অনুকূলে অর্থ জমা হচ্ছে)\",\n  \"paid_through_name\": \"String (যার মাধ্যমে টাকা প্রদত্ত হলো তার নাম ও ঠিকানা)\",\n  \"paid_on_behalf_of\": \"String (যে ব্যক্তির/প্রতিষ্ঠানের পক্ষ হতে টাকা প্রদত্ত হলো)\",\n  \"purpose_code\": \"String (e.g., 1112101 - কোম্পানিসমূহ কর্তৃক দেয় আয়কর & নতুন কোড)\",\n  \"amount\": \"Number as string with 2 decimals, commas removed (e.g., 3290510.00)\",\n  \"amount_in_words\": \"String (exact clean Bangla words from টাকা (কথায়))\",\n  \"remarks\": \"String (অন্যান্য বিবরণ/মন্তব্য, করবর্ষ, ধারা, CD/Source Tax details)\",\n  \"attachment_summary\": \"String (Full details of Page 2 tables, invoice numbers, AIT deducted amounts, or signatory stamps)\",\n  \"confidence_status\": \"VERIFIED or NEEDS_REVIEW\",\n  \"verification_notes\": \"Explain any blurry text repaired via Amount-in-Words or 3-copy cross-check\",\n  \"full_markdown_transcription\": \"Complete Bangla + English markdown transcription of all pages and tables for RAG vector search\"\n}",
+        "inputType": "binary",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        80
+      ],
+      "id": "3b1a5a20-01d5-470c-b26d-35a085b329f6",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst rawText = item.content?.parts?.[0]?.text || item.text || item.output || \"{}\";\nconst cleanedJson = rawText.replace(/```json|```/g, \"\").trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(cleanedJson);\n} catch (e) {\n  throw new Error(\"Gemini did not return valid JSON: \" + rawText.substring(0, 200));\n}\n\nconst bnToEnDigits = (str) => {\n  if (!str) return \"\";\n  const map = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};\n  return String(str).replace(/[০-৯]/g, d => map[d]);\n};\n\nlet fileName = \"uploaded_challan.pdf\";\nlet fileId = \"\";\ntry {\n  const driveData = $('Upload file').first().json;\n  fileName = driveData.name || fileName;\n  fileId = driveData.id || \"\";\n} catch (err) {}\n\nconst cleanAmount = bnToEnDigits(parsed.amount).replace(/[^0-9.]/g, \"\");\nconst cleanChallanNo = bnToEnDigits(parsed.challan_no);\nconst cleanDate = bnToEnDigits(parsed.date);\n\nconst sheetRow = {\n  file_name: fileName,\n  challan_no: cleanChallanNo,\n  date: cleanDate,\n  bank_name: parsed.bank_name ?? \"\",\n  branch: parsed.branch ?? \"\",\n  govt_office: parsed.govt_office ?? \"\",\n  paid_through_name: parsed.paid_through_name ?? \"\",\n  paid_on_behalf_of: parsed.paid_on_behalf_of ?? \"\",\n  purpose_code: parsed.purpose_code ?? \"\",\n  amount: cleanAmount,\n  amount_in_words: parsed.amount_in_words ?? \"\",\n  remarks: parsed.remarks ?? \"\",\n  attachment_summary: parsed.attachment_summary ?? \"\",\n  status: parsed.confidence_status ?? \"VERIFIED\",\n  notes: parsed.verification_notes ?? \"\",\n  metadata: JSON.stringify({ file_id: fileId, file_name: fileName, challan_no: cleanChallanNo }),\n  pageContent: `File: ${fileName}\\nChallan No: ${cleanChallanNo}\\nDate: ${cleanDate}\\nBank: ${parsed.bank_name}, ${parsed.branch}\\nGovt Office: ${parsed.govt_office}\\nPaid By: ${parsed.paid_through_name}\\nOn Behalf Of: ${parsed.paid_on_behalf_of}\\nAmount: ${cleanAmount} (${parsed.amount_in_words})\\nRemarks: ${parsed.remarks}\\nAttachments: ${parsed.attachment_summary}\\n\\nFull Content:\\n${parsed.full_markdown_transcription ?? \"\"}`\n};\n\nreturn [{ json: sheetRow }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        -176
+      ],
+      "id": "f693d1a7-96cf-48dd-aeac-af667f3674b6",
+      "name": "Code in JavaScript",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ",
+          "mode": "list",
+          "cachedResultName": "n8n Lead Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001116029,
+          "mode": "list",
+          "cachedResultName": "PDF write",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit#gid=2001116029"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -192
+      ],
+      "id": "2351493a-daf0-48d8-9ad5-56bc22e35f72",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eRlRdhWuVOaIBEF3",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"success\": true,\n    \"message\": \"✅ Document uploaded to Drive, extracted via Gemini Vision, and saved to Google Sheets!\",\n    \"data\": $('Code in JavaScript').first().json\n  }\n}}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        -192
+      ],
+      "id": "e3be32ca-93ee-41a6-8231-ee3796243fe0",
+      "name": "Success Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"success\": false,\n    \"message\": \"❌ Workflow failed: \" + ($json.error?.message || $json.error?.description || $json.message || \"Unknown error in node\")\n  }\n}}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1616,
+        -48
+      ],
+      "id": "1df8673b-6b83-4768-89fb-37e0581bcfb1",
+      "name": "Error Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
