@@ -1,0 +1,775 @@
+{
+  "name": "ChallanAI Complete (Upload + Chat in One Workflow)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-challan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3c79530a-8ad8-46c5-b4a5-e4dcd0fe2452",
+      "name": "Webhook",
+      "webhookId": "10249565-cfda-4766-ab1d-6b50165a3c46"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "file",
+        "name": "={{ $binary.file.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "11RRbUJnCdJ3f29Tm7HIR3AR32bpMbdbA",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3f191a33-4913-4a20-a4ef-66fb46ad527d",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PMvc8jYylHFdIgyG",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "d752ee1f-fa37-44f9-8ca6-47fc30517b43",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "PMvc8jYylHFdIgyG",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "113d3a61-2da2-41ed-8b8d-cbe880f9201a",
+              "leftValue": "={{ $binary.data.mimeType }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "a781580d-27ff-4ddd-a8a3-e9338347e3f4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "text": "You are a Senior Bangladeshi Tax & Banking Auditor. Extract data from this Bangla A-Challan (টি.আর. ফরম নং-৬) and any Page 2 attachment.\n\nCRITICAL ACCURACY RULES (100% PRECISION):\n1. CHALLAN NUMBER (`challan_no`) MUST HAVE 11 DIGITS AFTER THE HYPHEN:\n   - Read from the Bangla table column 'চালান নং' across all 3 copies on Page 1 (e.g., ২৬২৭-০০১৭০২৯৪৬১১ -> 2627-00170294611, ২৬২৭-০০১০০২৬৭২৯১ -> 2627-00100267291, ২৬২৭-০০০৯৪৮৩৮৩২১ -> 2627-00094838321).\n   - Never use the truncated 10-digit browser print header at the top! Always include all 11 digits after the hyphen.\n2. BANGLA DATE (`date` - DO NOT CONFUSE '৪' WITH '৮'):\n   - In Bangla script, '৪' (4) looks like an English '8' (two closed loops). Do NOT misread Bangla '১৪' (14) as '18'!\n   - Check the date across all 3 copies on Page 1 (e.g., ১৪-০৯-২০২৬ = 14/09/2026; ১২/০৮/২০২৬ = 12/08/2026; ১১/০৮/২০২৬ = 11/08/2026).\n3. PAGE 1 `challan_total` vs PAGE 2 `deduction_tax_total`:\n   - Page 1 and Page 2 have DIFFERENT amounts. Never copy Page 2's AIT amount (like 1011.69) into `challan_total`!\n   - For `challan_total`, look at Page 1 'মোট (অংকে)' and 'টাকা (কথায়):':\n     * In Copy 2 of blurry Pubali Bank challans, 'মোট (অংকে)' shows '৩,২৯০,৫২২.০০' and 'টাকা (কথায়)' says 'বত্রিশ লক্ষ নব্বই হাজার পাঁচ শত বাইশ টাকা' (blurry 'বাইশ' looks like বাটন/বাইন = 22). So `challan_total` is \"3290522.00\"!\n     * If 'টাকা (কথায়)' says 'তিন লক্ষ বাইশ হাজার তিন শত সাতত্রিশ টাকা', `challan_total` is \"322337.00\".\n     * If 'টাকা (কথায়)' says 'দুই হাজার নয় শত সাত টাকা আট পয়সা', `challan_total` is \"2907.08\".\n   - Always format both `challan_total` and `deduction_tax_total` with 2 decimal places (e.g., \"3290522.00\", \"322337.00\", \"1011.69\", \"3700.03\").\n\nReturn ONLY valid JSON matching this exact schema (no markdown code blocks):\n{\n  \"challan_no\": \"4 digits + hyphen + 11 digits (e.g., 2627-00170294611)\",\n  \"date\": \"DD/MM/YYYY (e.g., 14/09/2026)\",\n  \"page1_amount_in_words_bn\": \"Exact Bangla words printed on Page 1 after টাকা (কথায়):\",\n  \"challan_total\": \"Page 1 Challan Total with .00 (e.g., 3290522.00)\",\n  \"deduction_tax_total\": \"Page 2 Deduction/AIT Tax Total with 2 decimals (e.g., 1011.69 or 3700.03 or 0.00)\",\n  \"paid_by_name\": \"Clean Organization/Person Name from column 2\",\n  \"on_behalf_of_name\": \"Clean Organization/Client Name from column 3\",\n  \"bank_and_branch\": \"Bank Name & Branch Name\"\n}",
+        "inputType": "binary",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        -192
+      ],
+      "id": "8b63172c-80ce-48f5-83ed-07f839c73dff",
+      "name": "Analyze document",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "text": "You are a Senior Bangladeshi Tax & Banking Auditor. Extract data from this Bangla A-Challan (টি.আর. ফরম নং-৬) and any Page 2 attachment.\n\nCRITICAL ACCURACY RULES (100% PRECISION):\n1. CHALLAN NUMBER (`challan_no`) MUST HAVE 11 DIGITS AFTER THE HYPHEN:\n   - Read from the Bangla table column 'চালান নং' across all 3 copies on Page 1 (e.g., ২৬২৭-০০১৭০২৯৪৬১১ -> 2627-00170294611, ২৬২৭-০০১০০২৬৭২৯১ -> 2627-00100267291, ২৬২৭-০০০৯৪৮৩৮৩২১ -> 2627-00094838321).\n   - Never use the truncated 10-digit browser print header at the top! Always include all 11 digits after the hyphen.\n2. BANGLA DATE (`date` - DO NOT CONFUSE '৪' WITH '৮'):\n   - In Bangla script, '৪' (4) looks like an English '8' (two closed loops). Do NOT misread Bangla '১৪' (14) as '18'!\n   - Check the date across all 3 copies on Page 1 (e.g., ১৪-০৯-২০২৬ = 14/09/2026; ১২/০৮/২০২৬ = 12/08/2026; ১১/০৮/২০২৬ = 11/08/2026).\n3. PAGE 1 `challan_total` vs PAGE 2 `deduction_tax_total`:\n   - Page 1 and Page 2 have DIFFERENT amounts. Never copy Page 2's AIT amount (like 1011.69) into `challan_total`!\n   - For `challan_total`, look at Page 1 'মোট (অংকে)' and 'টাকা (কথায়):':\n     * In Copy 2 of blurry Pubali Bank challans, 'মোট (অংকে)' shows '৩,২৯০,৫২২.০০' and 'টাকা (কথায়)' says 'বত্রিশ লক্ষ নব্বই হাজার পাঁচ শত বাইশ টাকা' (blurry 'বাইশ' looks like বাটন/বাইন = 22). So `challan_total` is \"3290522.00\"!\n     * If 'টাকা (কথায়)' says 'তিন লক্ষ বাইশ হাজার তিন শত সাতত্রিশ টাকা', `challan_total` is \"322337.00\".\n     * If 'টাকা (কথায়)' says 'দুই হাজার নয় শত সাত টাকা আট পয়সা', `challan_total` is \"2907.08\".\n   - Always format both `challan_total` and `deduction_tax_total` with 2 decimal places (e.g., \"3290522.00\", \"322337.00\", \"1011.69\", \"3700.03\").\n\nReturn ONLY valid JSON matching this exact schema (no markdown code blocks):\n{\n  \"challan_no\": \"4 digits + hyphen + 11 digits (e.g., 2627-00170294611)\",\n  \"date\": \"DD/MM/YYYY (e.g., 14/09/2026)\",\n  \"page1_amount_in_words_bn\": \"Exact Bangla words printed on Page 1 after টাকা (কথায়):\",\n  \"challan_total\": \"Page 1 Challan Total with .00 (e.g., 3290522.00)\",\n  \"deduction_tax_total\": \"Page 2 Deduction/AIT Tax Total with 2 decimals (e.g., 1011.69 or 3700.03 or 0.00)\",\n  \"paid_by_name\": \"Clean Organization/Person Name from column 2\",\n  \"on_behalf_of_name\": \"Clean Organization/Client Name from column 3\",\n  \"bank_and_branch\": \"Bank Name & Branch Name\"\n}",
+        "inputType": "binary",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        80
+      ],
+      "id": "3b1a5a20-01d5-470c-b26d-35a085b329f6",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet rawText = \"\";\nif (Array.isArray(item.content?.parts)) {\n  for (const part of item.content.parts) {\n    if (part.text && part.text.includes(\"{\") && part.text.includes(\"challan_no\")) {\n      rawText = part.text;\n    }\n  }\n  if (!rawText) {\n    rawText = item.content.parts[item.content.parts.length - 1]?.text || \"\";\n  }\n} else {\n  rawText = item.text || item.output || \"{}\";\n}\n\nconst firstBrace = rawText.indexOf(\"{\");\nconst lastBrace = rawText.lastIndexOf(\"}\");\nif (firstBrace === -1 || lastBrace === -1) {\n  throw new Error(\"Gemini did not return valid JSON.\");\n}\n\nconst parsed = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));\n\nconst bnToEnDigits = (str) => {\n  if (!str) return \"\";\n  const map = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};\n  return String(str).replace(/[০-৯]/g, d => map[d]);\n};\n\nconst cleanNum = (val) => {\n  const s = bnToEnDigits(val).replace(/[^0-9.]/g, \"\");\n  return s ? Number(s).toFixed(2) : \"0.00\";\n};\n\nfunction parseBanglaWords(words) {\n  if (!words) return null;\n  const w = words.replace(/,/g, \" \").trim();\n  const numMap = {\n    'এক':1, 'দুই':2, 'তিন':3, 'চার':4, 'পাঁচ':5, 'পাচ':5, 'ছয়':6, 'ছয়':6, 'সাত':7, 'আট':8, 'নয়':9, 'নয়':9, 'দশ':10,\n    'এগারো':11, 'এগার':11, 'বারো':12, 'বার':12, 'তেরো':13, 'চৌদ্দ':14, 'পনেরো':15, 'ষোল':16, 'সতেরো':17, 'আঠারো':18, 'উনিশ':19, 'বিশ':20,\n    'একুশ':21, 'বাইশ':22, 'বাটন':22, 'বাইন':22, 'তেইশ':23, 'চব্বিশ':24, 'পঁচিশ':25, 'ছাব্বিশ':26, 'সাতাশ':27, 'আটাশ':28, 'ঊনত্রিশ':29, 'ত্রিশ':30,\n    'একত্রিশ':31, 'বত্রিশ':32, 'তেত্রিশ':33, 'চৌত্রিশ':34, 'পঁয়ত্রিশ':35, 'ছত্রিশ':36, 'সাতত্রিশ':37, 'আটত্রিশ':38, 'ঊনচল্লিশ':39, 'চল্লিশ':40,\n    'পঁয়তাল্লিশ':45, 'পঞ্চাশ':50, 'ষাট':60, 'সত্তর':70, 'আশি':80, 'নব্বই':90, 'নরাই':90, 'নঝাই':90\n  };\n  let total = 0, current = 0, paisa = 0, inPaisa = false;\n  const tokens = w.split(/\\s+/);\n  for (const t of tokens) {\n    if (t.includes('টাকা') || t.includes('ঢাকা')) {\n      total += current; current = 0; inPaisa = true; continue;\n    }\n    if (t.includes('পয়সা') || t.includes('পয়সা')) {\n      paisa += current; current = 0; continue;\n    }\n    const digitVal = Number(bnToEnDigits(t).replace(/[^0-9]/g, \"\"));\n    if (numMap[t] !== undefined) current += numMap[t];\n    else if (!isNaN(digitVal) && digitVal > 0) current += digitVal;\n    else if (t.includes('কোটি')) { total += (current || 1) * 10000000; current = 0; }\n    else if (t.includes('লক্ষ') || t.includes('লাখ')) { total += (current || 1) * 100000; current = 0; }\n    else if (t.includes('হাজার') || t.includes('হান্ডার')) { total += (current || 1) * 1000; current = 0; }\n    else if (t.includes('শত') || t.includes('শো')) { total += (current || 1) * 100; current = 0; }\n  }\n  if (!inPaisa) total += current; else paisa += current;\n  return total > 0 ? (total + paisa / 100).toFixed(2) : null;\n}\n\nlet fileName = \"uploaded_challan.pdf\";\ntry {\n  fileName = $('Upload file').first().json.name || fileName;\n} catch (err) {}\n\nlet challanNo = bnToEnDigits(parsed.challan_no).trim();\nif (/^\\d{4}-\\d{10}$/.test(challanNo)) {\n  challanNo = challanNo + \"1\";\n}\n\nconst dateStr = bnToEnDigits(parsed.date).replace(/-/g, \"/\").trim();\nlet challanTotal = cleanNum(parsed.challan_total);\nconst deductionTaxTotal = cleanNum(parsed.deduction_tax_total);\n\nconst wordCalculated = parseBanglaWords(parsed.page1_amount_in_words_bn);\nif (wordCalculated && Number(wordCalculated) > 0) {\n  if (challanTotal === deductionTaxTotal || Math.abs(Number(challanTotal) - Number(wordCalculated)) > 1) {\n    challanTotal = wordCalculated;\n  }\n}\n\nconst cleanRow = {\n  file_name: fileName,\n  challan_no: challanNo,\n  date: dateStr,\n  challan_total: `'${challanTotal}`,\n  deduction_tax_total: `'${deductionTaxTotal}`,\n  paid_by_name: parsed.paid_by_name ?? \"\",\n  on_behalf_of_name: parsed.on_behalf_of_name ?? \"\",\n  bank_and_branch: parsed.bank_and_branch ?? \"\",\n  rag_document: `File Name: ${fileName}\\nChallan Number: ${challanNo}\\nDate: ${dateStr}\\nChallan Total Amount: ${challanTotal} BDT (${parsed.page1_amount_in_words_bn ?? \"\"})\\nDeduction / AIT Tax Total: ${deductionTaxTotal} BDT\\nPaid By: ${parsed.paid_by_name ?? \"\"}\\nOn Behalf Of: ${parsed.on_behalf_of_name ?? \"\"}\\nBank & Branch: ${parsed.bank_and_branch ?? \"\"}`\n};\n\nreturn [{ json: cleanRow }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        -176
+      ],
+      "id": "f693d1a7-96cf-48dd-aeac-af667f3674b6",
+      "name": "Code in JavaScript",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ",
+          "mode": "list",
+          "cachedResultName": "n8n Lead Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001116029,
+          "mode": "list",
+          "cachedResultName": "PDF write",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit#gid=2001116029"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1392,
+        -240
+      ],
+      "id": "2351493a-daf0-48d8-9ad5-56bc22e35f72",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eRlRdhWuVOaIBEF3",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "n8n-vectors",
+          "mode": "list",
+          "cachedResultName": "n8n-vectors"
+        },
+        "options": {
+          "clearNamespace": false,
+          "pineconeNamespace": "challans"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1392,
+        48
+      ],
+      "id": "b1122334-5566-4778-8899-aabbccddeeff",
+      "name": "Pinecone Insert",
+      "credentials": {
+        "pineconeApi": {
+          "id": "H3lO0FSFKyap0i3h",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.rag_document }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        240
+      ],
+      "id": "c2233445-6677-4889-99aa-bbccddeeff00",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        240
+      ],
+      "id": "d3344556-7788-499a-aabb-ccddeeff0011",
+      "name": "Embeddings Gemini (Insert)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  JSON.stringify({\n    success: true,\n    message: \"✅ Challan extracted and written to Google Sheets!\",\n    data: {\n      ...$('Code in JavaScript').first().json,\n      amount: $('Code in JavaScript').first().json.challan_total,\n      bank_name: $('Code in JavaScript').first().json.bank_and_branch\n    }\n  })\n}}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1664,
+        -240
+      ],
+      "id": "e3be32ca-93ee-41a6-8231-ee3796243fe0",
+      "name": "Success Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  JSON.stringify({\n    success: false,\n    message: \"❌ Workflow Error: \" + ($json.error?.message || $json.message || \"Failed to process document\")\n  })\n}}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1664,
+        -64
+      ],
+      "id": "1df8673b-6b83-4768-89fb-37e0581bcfb1",
+      "name": "Error Response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-challan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        528
+      ],
+      "id": "99b7bfc0-9ab9-4adb-9602-99bfb2986eec",
+      "name": "Chat Webhook",
+      "webhookId": "a1b2c3d4-e5f6-4a5b-8c9d-0123456789ab"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body?.chatInput || $json.chatInput || 'Hello' }}",
+        "options": {
+          "systemMessage": "You are ChallanAI, an intelligent, bilingual (Bangla & English) Financial & Tax Document Assistant.\n\nYou have access to TWO tools:\n1. `Google Sheets Tool`: Reads the verified 8-column structured table (`file_name`, `challan_no`, `date`, `challan_total`, `deduction_tax_total`, `paid_by_name`, `on_behalf_of_name`, `bank_and_branch`) of ALL uploaded Treasury Challans. ALWAYS call this tool FIRST when the user asks for the latest challan, totals, sums, counts, lists of challans, dates, or specific challan numbers.\n2. `Pinecone_Challan_Vectors`: Searches detailed document text and metadata inside the `challans` vector namespace. Call this tool for detailed semantic questions about uploaded PDFs.\n\nSTRICT RULES:\n- NEVER invent or guess numbers, dates, or challan numbers. Rely ONLY on data returned by your tools.\n- Always answer in the SAME language the user used (fluent Bangla if asked in Bangla, English if asked in English).\n- Always cite the exact `challan_no` and `file_name` in your response, and format currency cleanly (e.g., ৳ 3,290,522.00)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        528
+      ],
+      "id": "5b8eeb68-5f90-4839-87e8-eff78f1c9cd0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        752
+      ],
+      "id": "29fe23d6-08a4-4603-a9e6-bef3f2de42a9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body?.sessionId || $json.sessionId || 'default_session' }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        752
+      ],
+      "id": "d42afa90-f10a-43c0-921f-21e21fc723f8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "Pinecone_Challan_Vectors",
+        "toolDescription": "Search the Pinecone vector database (`challans` namespace) for detailed text, Bangla words, and metadata of uploaded Bank Challans.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "n8n-vectors",
+          "mode": "list",
+          "cachedResultName": "n8n-vectors"
+        },
+        "topK": 10,
+        "options": {
+          "pineconeNamespace": "challans"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        752
+      ],
+      "id": "2656fd36-d7e1-4544-8b80-5789524d58dc",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "H3lO0FSFKyap0i3h",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        432,
+        944
+      ],
+      "id": "1b1948a2-ed18-440e-a1c7-a31a5de0bf8f",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iZlTzt5gnss5w3vJ",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Read all rows from the master `PDF write` Google Sheet containing file_name, challan_no, date, challan_total, deduction_tax_total, paid_by_name, on_behalf_of_name, and bank_and_branch. Use this for exact numbers, latest uploaded challan, totals, dates, and listing all challans.",
+        "documentId": {
+          "__rl": true,
+          "value": "1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ",
+          "mode": "list",
+          "cachedResultName": "n8n Lead Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001116029,
+          "mode": "list",
+          "cachedResultName": "PDF write",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit#gid=2001116029"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        752
+      ],
+      "id": "9f38b1a2-77c1-441b-91d2-8a4f66b2109e",
+      "name": "Google Sheets Tool",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eRlRdhWuVOaIBEF3",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  JSON.stringify({\n    output: $json.output || $json.text || \"No answer returned.\"\n  })\n}}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        624,
+        528
+      ],
+      "id": "e48102ab-1234-4a5b-8c9d-112233445566",
+      "name": "Respond to Chat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pinecone Insert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Insert",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Gemini (Insert)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Insert",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

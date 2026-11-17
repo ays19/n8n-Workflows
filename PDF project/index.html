@@ -120,10 +120,28 @@
       animation: fadeUp 0.22s ease-out forwards;
     }
 
-    /* Desktop Split Pane Sizing */
+    /* Desktop Split Pane Sizing: Only splits when .split-active is present */
     @media (min-width: 1024px) {
-      #left-pane { width: var(--split-left, 50%) !important; display: flex !important; }
-      #right-pane { width: var(--split-right, 50%) !important; display: flex !important; }
+      #split-container:not(.split-active) #left-pane {
+        width: 100% !important;
+        display: flex !important;
+        border-right-width: 0 !important;
+      }
+      #split-container:not(.split-active) #right-pane,
+      #split-container:not(.split-active) #split-resizer {
+        display: none !important;
+      }
+      #split-container.split-active #left-pane {
+        width: var(--split-left, 50%) !important;
+        display: flex !important;
+      }
+      #split-container.split-active #right-pane {
+        width: var(--split-right, 50%) !important;
+        display: flex !important;
+      }
+      #split-container.split-active #split-resizer {
+        display: flex !important;
+      }
     }
 
     /* Print styling for Clean Digital Replica View */
@@ -225,12 +243,10 @@
           title="Toggle Dark / Light Mode"
           class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
-          <!-- Sun icon (shown in dark mode) -->
           <svg id="icon-sun" viewBox="0 0 24 24" class="w-4 h-4" fill="none">
             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2" />
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
-          <!-- Moon icon (shown in light mode) -->
           <svg id="icon-moon" viewBox="0 0 24 24" class="w-4 h-4 hidden" fill="none">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
@@ -256,18 +272,18 @@
       <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-indigo-300">
           <span class="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
-          <span>n8n AI Pipeline Active</span>
+          <span>n8n AI Pipeline Active — Split-Screen Sheet will appear upon completion</span>
         </div>
         <div id="stepper-pills" class="flex flex-wrap items-center gap-1.5 sm:gap-2"></div>
       </div>
     </div>
 
-    <!-- Tablet / Mobile Tab Navigation -->
-    <div class="lg:hidden grid grid-cols-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+    <!-- Tablet / Mobile Tab Navigation (Hidden until document is uploaded) -->
+    <div id="mobile-tab-bar" class="hidden lg:hidden grid-cols-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
       <button type="button" data-mobile-tab="viewer" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800/50 transition">
         📄 Document Viewer
       </button>
-      <button type="button" data-mobile-tab="sheet" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition">
+      <button id="btn-mobile-tab-sheet" type="button" data-mobile-tab="sheet" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition disabled:opacity-40" disabled>
         📊 Google Sheet
       </button>
       <button type="button" data-mobile-tab="chat" class="mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition">
@@ -283,8 +299,8 @@
 
     <!-- LEFT PANEL: DOCUMENT VIEWER & CLARITY STUDIO -->
     <section id="left-pane" class="h-full min-w-0 w-full flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70">
-      <!-- Panel Top Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
+      <!-- Panel Top Bar (Hidden when no document is loaded) -->
+      <div id="viewer-top-bar" class="hidden flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
         <!-- View Mode Tabs -->
         <div class="inline-flex p-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700">
           <button
@@ -338,8 +354,8 @@
         </div>
       </div>
 
-      <!-- Clarity Enhancer Toolbar -->
-      <div id="clarity-toolbar" class="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/50">
+      <!-- Clarity Enhancer Toolbar (Hidden when no document is loaded) -->
+      <div id="clarity-toolbar" class="hidden px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/50">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <button
@@ -411,41 +427,35 @@
 
         <!-- VIEW 1: Scan Mode -->
         <div id="scan-view-container" class="h-full">
-          <!-- Empty State Dropzone -->
+          <!-- Stage 1 Empty State Dropzone -->
           <div id="empty-dropzone" class="h-full flex items-center justify-center p-6">
-            <div class="max-w-md w-full rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-8 text-center shadow-sm">
-              <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-4">
-                <svg viewBox="0 0 24 24" class="w-7 h-7" fill="none">
+            <div class="max-w-lg w-full rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-10 text-center shadow-sm">
+              <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-5">
+                <svg viewBox="0 0 24 24" class="w-8 h-8" fill="none">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
-              <h3 class="text-base font-bold mb-1">Upload Bank Challan or Invoice</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
-                Drag &amp; drop a blurry or scanned
+              <h3 class="text-lg font-bold mb-1.5">Upload Bank Challan or Invoice</h3>
+              <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                Drag &amp; drop a scanned
                 <span class="font-bengali font-semibold text-slate-700 dark:text-slate-200">টি.আর. ফরম নং-৬</span>
-                (PDF, PNG, or JPG). Instant local preview starts immediately while n8n processes OCR &amp; RAG indexing.
+                (PDF, PNG, or JPG).<br />
+                <strong>Step 1:</strong> Preview your PDF immediately &bull; <strong>Step 2:</strong> View PDF &amp; Excel side-by-side once extraction completes.
               </p>
 
-              <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <div class="flex items-center justify-center">
                 <button
                   id="btn-center-upload"
                   type="button"
-                  class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm shadow-indigo-500/30 transition"
+                  class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-md shadow-indigo-500/30 transition"
                 >
-                  Select PDF / Image
-                </button>
-                <button
-                  id="btn-load-sample"
-                  type="button"
-                  class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition"
-                >
-                  ✨ Load Blurry Sample
+                  📄 Select PDF or Image to Start
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Rendered Document Surface -->
+          <!-- Stage 2 & 3 Rendered Document Surface -->
           <div id="rendered-surface" class="hidden min-h-full items-center justify-center p-4 sm:p-6">
             <div id="transform-wrapper" class="transition-transform duration-150 ease-out origin-center">
               <img id="preview-image" alt="Uploaded Challan" class="hidden max-w-full max-h-[82vh] object-contain rounded-lg shadow-xl bg-white" />
@@ -460,17 +470,17 @@
       </div>
     </section>
 
-    <!-- DRAGGABLE RESIZER HANDLE (Desktop lg+) -->
+    <!-- DRAGGABLE RESIZER HANDLE (Shown in Stage 3 when split-active is enabled) -->
     <div
       id="split-resizer"
       title="Drag to resize panels"
-      class="hidden lg:flex w-1.5 cursor-col-resize items-center justify-center bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500 transition-colors flex-shrink-0 group"
+      class="hidden w-1.5 cursor-col-resize items-center justify-center bg-slate-200/80 dark:bg-slate-800 hover:bg-indigo-500 transition-colors flex-shrink-0 group"
     >
       <div class="w-0.5 h-8 rounded-full bg-slate-400 dark:bg-slate-600 group-hover:bg-white"></div>
     </div>
 
-    <!-- RIGHT PANEL: EMBEDDED GOOGLE SHEETS LIVE VERIFIER -->
-    <section id="right-pane" class="hidden lg:flex h-full min-w-0 w-full flex-col bg-white dark:bg-slate-900/70">
+    <!-- RIGHT PANEL: EMBEDDED GOOGLE SHEETS LIVE VERIFIER (Shown in Stage 3 after workflow completes) -->
+    <section id="right-pane" class="hidden h-full min-w-0 w-full flex-col bg-white dark:bg-slate-900/70">
       <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90">
         <div class="flex flex-wrap items-center gap-1.5">
           <button
@@ -514,9 +524,10 @@
       </div>
 
       <div class="relative flex-1 bg-slate-100 dark:bg-slate-950">
+        <!-- Lazy-loaded only when workflow completes -->
         <iframe
           id="sheet-iframe"
-          src="https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?gid=2001116029&rm=minimal#gid=2001116029"
+          src="about:blank"
           title="Live Google Sheet Verifier"
           class="w-full h-full border-0"
           allow="clipboard-read; clipboard-write"
@@ -548,7 +559,7 @@
         </div>
         <div>
           <h3 class="text-sm font-bold leading-tight">ChallanAI RAG Assistant</h3>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Pinecone Vector DB • Bilingual (বাংলা / EN)</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Pinecone + Sheets • Bilingual (বাংলা / EN)</p>
         </div>
       </div>
 
@@ -629,28 +640,28 @@
   <div id="toast-container" class="hidden fixed top-16 right-4 z-50 animate-fadeUp"></div>
 
   <!-- =====================================================================
-       PURE VANILLA APPLICATION LOGIC (Zero Babel / Zero React Dependency)
+       APPLICATION LOGIC
   ====================================================================== -->
   <script>
     (function () {
       'use strict';
 
       const STORAGE_KEYS = {
-        SETTINGS: 'challanai_settings_v1',
+        SETTINGS: 'challanai_settings_v3',
         THEME: 'challanai_theme_v1',
         CHAT_SESSION: 'challanai_chat_session_v1',
       };
 
       const DEFAULT_SETTINGS = {
-        uploadWebhookUrl: 'http://localhost:5678/webhook/upload-challan',
-        chatWebhookUrl: 'http://localhost:5678/webhook/9d87e23c-2ee8-42b6-8bef-67b6ac7ca642/chat',
+        uploadWebhookUrl: 'https://dexterity-rimmed-sympathy.ngrok-free.dev/webhook/upload-challan',
+        chatWebhookUrl: 'https://dexterity-rimmed-sympathy.ngrok-free.dev/webhook/chat-challan',
         googleSheetUrl: 'https://docs.google.com/spreadsheets/d/1wU1_VDEwWJuhQrweZyYQyh8k1keylHqGDUlL8OPI7uQ/edit?gid=2001116029',
       };
 
       const QUICK_PROMPTS = [
         'সর্বশেষ আপলোড করা চালানের মোট টাকার পরিমাণ কত?',
-        'Summarize the 2nd page invoice table and AIT deduction.',
-        'List all Challans from Pubali Bank and Midland Bank.',
+        'সবগুলো চালানের মোট টাকা (challan_total) এবং কর্তনকৃত করের (deduction_tax_total) যোগফল কত?',
+        'List all Challans from Pubali Bank and Midland Bank with their Challan numbers and dates.',
       ];
 
       const DEFAULT_ENHANCER = {
@@ -662,27 +673,10 @@
         binarize: false,
       };
 
-      const SAMPLE_EXTRACTED_DATA = {
-        challan_no: 'CH-2026-084921',
-        date: '14-11-2026',
-        bank_name: 'Pubali Bank PLC',
-        branch: 'Motijheel Corporate Branch, Dhaka',
-        govt_office: 'Deputy Commissioner of Taxes, Zone-04, Dhaka',
-        paid_through_name: 'Md. Rafiqul Islam (Accounts Manager)',
-        paid_on_behalf_of: 'Bengal Tech & Engineering Ltd. (TIN: 492817462011)',
-        purpose_code: '1-1141-0010-0111 (Source Tax / AIT Deduction)',
-        amount: '৳ 45,500.00',
-        amount_in_words: 'চল্লিশ পাঁচ হাজার পাঁচশত টাকা মাত্র (Forty-Five Thousand Five Hundred Taka Only)',
-        remarks: 'AIT deducted @ 5% against Invoice #INV-9921 (Software & Infrastructure Services)',
-        attachment_summary: '2 Pages: Page 1 — T.R. Form No-6 Treasury Challan (৳45,500); Page 2 — Vendor Tax Invoice (Gross ৳9,10,000, AIT 5%).',
-        confidence: 'VERIFIED',
-      };
-
-      // Application State
       const state = {
         theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'dark',
         settings: loadSettings(),
-        viewMode: 'scan', // 'scan' | 'replica'
+        viewMode: 'scan',
         showRawJson: false,
         enhancer: { ...DEFAULT_ENHANCER },
         zoom: 1,
@@ -696,6 +690,7 @@
         pdfTotalPages: 0,
         extractedData: null,
         isUploading: false,
+        isSplitViewVisible: false, // Controls whether the right-side Google Sheet is shown
         activeSheetGid: '2001116029',
         sheetRefreshNonce: 1,
         chatOpen: false,
@@ -707,7 +702,12 @@
       function loadSettings() {
         try {
           const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-          return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : { ...DEFAULT_SETTINGS };
+          if (!saved) return { ...DEFAULT_SETTINGS };
+          const parsed = JSON.parse(saved);
+          if (parsed.chatWebhookUrl && parsed.chatWebhookUrl.includes('/9d87e23c-')) {
+            parsed.chatWebhookUrl = DEFAULT_SETTINGS.chatWebhookUrl;
+          }
+          return { ...DEFAULT_SETTINGS, ...parsed };
         } catch (_) {
           return { ...DEFAULT_SETTINGS };
         }
@@ -721,10 +721,8 @@
         return fresh;
       }
 
-      // DOM Helper
       const $ = (id) => document.getElementById(id);
 
-      // Escape HTML
       function escapeHtml(str) {
         return String(str ?? '')
           .replace(/&/g, '&amp;')
@@ -733,7 +731,11 @@
           .replace(/"/g, '&quot;');
       }
 
-      // Chime Audio Feedback
+      function cleanDisplayAmount(val) {
+        if (!val) return '';
+        return String(val).replace(/^'+/, '');
+      }
+
       function playChime(type) {
         try {
           const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -764,7 +766,6 @@
         } catch (_) {}
       }
 
-      // Toast Notification
       let toastTimer = null;
       function showToast(msg, type = 'info') {
         const container = $('toast-container');
@@ -784,7 +785,6 @@
         }, 3200);
       }
 
-      // Theme Management
       function applyTheme() {
         const root = document.documentElement;
         if (state.theme === 'dark') {
@@ -799,7 +799,42 @@
         localStorage.setItem(STORAGE_KEYS.THEME, state.theme);
       }
 
-      // Update SVG Convolution Matrix & CSS Filter
+      // Controls the 3-Stage Layout (Stage 1: Empty -> Stage 2: Full PDF -> Stage 3: Split PDF + Sheet)
+      function updateWorkspaceStage() {
+        const splitContainer = $('split-container');
+        const viewerTopBar = $('viewer-top-bar');
+        const clarityToolbar = $('clarity-toolbar');
+        const mobileTabBar = $('mobile-tab-bar');
+        const mobileSheetBtn = $('btn-mobile-tab-sheet');
+
+        const hasDocument = Boolean(state.previewUrl);
+
+        if (!hasDocument) {
+          viewerTopBar.classList.add('hidden');
+          viewerTopBar.classList.remove('flex');
+          clarityToolbar.classList.add('hidden');
+          mobileTabBar.classList.add('hidden');
+          mobileTabBar.classList.remove('grid');
+        } else {
+          viewerTopBar.classList.remove('hidden');
+          viewerTopBar.classList.add('flex');
+          if (state.viewMode === 'scan') {
+            clarityToolbar.classList.remove('hidden');
+          }
+          mobileTabBar.classList.remove('hidden');
+          mobileTabBar.classList.add('grid');
+        }
+
+        if (state.isSplitViewVisible) {
+          splitContainer.classList.add('split-active');
+          if (mobileSheetBtn) mobileSheetBtn.disabled = false;
+          updateSheetIframe();
+        } else {
+          splitContainer.classList.remove('split-active');
+          if (mobileSheetBtn) mobileSheetBtn.disabled = true;
+        }
+      }
+
       function applyEnhancerFilters() {
         const s = state.enhancer.enabled ? Number(state.enhancer.sharpness || 0) : 0;
         const center = (1 + 4 * s).toFixed(3);
@@ -809,7 +844,6 @@
         $('svg-convolve-matrix')?.setAttribute('kernelMatrix', matrix);
         $('svg-convolve-matrix-bin')?.setAttribute('kernelMatrix', matrix);
 
-        // Update UI controls
         const btn = $('btn-toggle-enhancer');
         const badge = $('enhancer-badge');
         const resetBtn = $('btn-reset-enhancer');
@@ -867,7 +901,6 @@
         });
       }
 
-      // Zoom & Rotation Transform
       function applyTransform() {
         $('zoom-label').textContent = `${Math.round(state.zoom * 100)}%`;
         const wrapper = $('transform-wrapper');
@@ -876,7 +909,6 @@
         }
       }
 
-      // Switch Scan vs Clean Digital Replica View
       function updateViewMode() {
         const scanTab = $('tab-view-scan');
         const replicaTab = $('tab-view-replica');
@@ -896,7 +928,7 @@
           scanTab.className = 'px-3 py-1.5 rounded-md text-xs font-semibold transition bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm';
           replicaTab.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
           scanControls.classList.remove('hidden');
-          clarityToolbar.classList.remove('hidden');
+          if (state.previewUrl) clarityToolbar.classList.remove('hidden');
           scanContainer.classList.remove('hidden');
           replicaContainer.classList.add('hidden');
         } else {
@@ -910,7 +942,6 @@
         }
       }
 
-      // Render Clean Digital Replica View
       function renderDigitalReplica() {
         const container = $('replica-view-container');
         if (!container) return;
@@ -919,41 +950,31 @@
         if (!data) {
           container.innerHTML = `
             <div class="h-full flex flex-col items-center justify-center p-8 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-4 text-2xl">📄</div>
-              <h3 class="text-base font-semibold mb-1.5">Digital Clean View (ডিজিটাল ক্লিন ভিউ)</h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-4">
-                Upload a Challan PDF or image (or click <strong>✨ Load Blurry Sample</strong>) to populate the structured Bangla &amp; English
-                <span class="font-bengali font-medium text-slate-700 dark:text-slate-200">টি.আর. ফরম নং-৬</span>
-                digital replica.
+              <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 mb-4 text-2xl">⏳</div>
+              <h3 class="text-base font-semibold mb-1.5">Waiting for Extraction...</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+                Once the n8n workflow finishes processing your uploaded Challan, the structured digital replica will appear here automatically.
               </p>
-              <button id="btn-replica-load-sample" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
-                ✨ Load Blurry Sample Data
-              </button>
             </div>
           `;
-          $('btn-replica-load-sample')?.addEventListener('click', () => {
-            handleLoadSample();
-            renderDigitalReplica();
-          });
           return;
         }
 
-        const status = String(data.confidence || data.audit_status || data.status || 'VERIFIED').toUpperCase();
+        const status = String(data.confidence || data.status || 'VERIFIED').toUpperCase();
         const isReview = status.includes('REVIEW') || status.includes('WARN') || status.includes('LOW');
 
+        const challanTotalVal = cleanDisplayAmount(data.challan_total || data.amount);
+        const deductionTotalVal = cleanDisplayAmount(data.deduction_tax_total);
+
         const fields = [
+          { labelBn: 'ফাইলের নাম', labelEn: 'File Name', value: data.file_name || state.currentFile?.name },
           { labelBn: 'চালান নং', labelEn: 'Challan No', value: data.challan_no },
           { labelBn: 'তারিখ', labelEn: 'Date', value: data.date },
-          { labelBn: 'ব্যাংকের নাম', labelEn: 'Bank Name', value: data.bank_name },
-          { labelBn: 'শাখা', labelEn: 'Branch', value: data.branch },
-          { labelBn: 'সরকারি দপ্তর / কোড', labelEn: 'Govt Office', value: data.govt_office },
-          { labelBn: 'অর্থনৈতিক কোড / খাত', labelEn: 'Purpose Code', value: data.purpose_code },
-          { labelBn: 'যাহার মারফত প্রদত্ত', labelEn: 'Paid Through', value: data.paid_through_name },
-          { labelBn: 'যাহার পক্ষ হইতে প্রদত্ত', labelEn: 'Paid On Behalf Of', value: data.paid_on_behalf_of },
-          { labelBn: 'মোট টাকার পরিমাণ', labelEn: 'Amount', value: data.amount, highlight: true },
-          { labelBn: 'কথায়', labelEn: 'Amount in Words', value: data.amount_in_words },
-          { labelBn: 'মন্তব্য', labelEn: 'Remarks', value: data.remarks },
-          { labelBn: 'সংযুক্তি সারসংক্ষেপ', labelEn: 'Attachment Summary', value: data.attachment_summary },
+          { labelBn: 'মোট চালান টাকা (Page 1)', labelEn: 'Challan Total (BDT)', value: challanTotalVal ? `৳ ${challanTotalVal}` : '', highlight: true },
+          { labelBn: 'উৎসে কর / কর্তনকৃত কর (Page 2)', labelEn: 'Deduction Tax Total (BDT)', value: deductionTotalVal ? `৳ ${deductionTotalVal}` : '', highlight: true },
+          { labelBn: 'যাহার মারফত প্রদত্ত', labelEn: 'Paid By Name', value: data.paid_by_name || data.paid_through_name },
+          { labelBn: 'যাহার পক্ষ হইতে প্রদত্ত', labelEn: 'On Behalf Of Name', value: data.on_behalf_of_name || data.paid_on_behalf_of },
+          { labelBn: 'ব্যাংক ও শাখা', labelEn: 'Bank & Branch', value: data.bank_and_branch || data.bank_name },
         ];
 
         const rowsHtml = fields
@@ -985,11 +1006,6 @@
                 <span class="w-2 h-2 rounded-full ${isReview ? 'bg-amber-500' : 'bg-emerald-500'}"></span>
                 ${isReview ? 'NEEDS_REVIEW' : 'VERIFIED'}
               </span>
-              ${
-                state.currentFile?.name
-                  ? `<span class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">${escapeHtml(state.currentFile.name)}</span>`
-                  : ''
-              }
             </div>
             <div class="flex items-center gap-2">
               <button id="btn-toggle-json" type="button" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -1026,93 +1042,6 @@
         $('btn-print-challan')?.addEventListener('click', () => window.print());
       }
 
-      // Generate Sample Blurry Challan on Canvas
-      function generateSampleBlurryChallanDataUrl() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 960;
-        canvas.height = 1240;
-        const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#edf0f2';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.filter = 'blur(0.85px)';
-
-        ctx.fillStyle = '#1e293b';
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 26px "Hind Siliguri", sans-serif';
-        ctx.fillText('চালান ফরম — টি.আর. ফরম নং-৬', 480, 72);
-        ctx.font = '18px Inter, sans-serif';
-        ctx.fillText('CHALLAN FORM (T.R. FORM NO. 6) — BANGLADESH TREASURY', 480, 105);
-
-        ctx.textAlign = 'left';
-        ctx.font = '18px "Hind Siliguri", sans-serif';
-        ctx.fillStyle = '#334155';
-        ctx.fillText('চালান নং (Challan No): CH-2026-084921', 64, 165);
-        ctx.fillText('তারিখ (Date): ১৪/১১/২০২৬ (14-11-2026)', 570, 165);
-        ctx.fillText('ব্যাংক ও শাখা: Pubali Bank PLC, Motijheel Corporate Branch', 64, 202);
-
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 1.6;
-        ctx.strokeRect(54, 235, 852, 650);
-        [320, 460, 620, 760].forEach((y) => {
-          ctx.beginPath();
-          ctx.moveTo(54, y);
-          ctx.lineTo(906, y);
-          ctx.stroke();
-        });
-        [340, 660].forEach((x) => {
-          ctx.beginPath();
-          ctx.moveTo(x, 235);
-          ctx.lineTo(x, 885);
-          ctx.stroke();
-        });
-
-        ctx.font = 'bold 17px "Hind Siliguri", sans-serif';
-        ctx.fillText('যাহার মারফত প্রদত্ত হইল', 70, 275);
-        ctx.fillText('যে ব্যক্তির/প্রতিষ্ঠানের পক্ষ হইতে প্রদত্ত', 355, 275);
-        ctx.fillText('টাকার অংক (Amount)', 680, 275);
-
-        ctx.font = '17px "Hind Siliguri", sans-serif';
-        ctx.fillText('Md. Rafiqul Islam', 70, 365);
-        ctx.fillText('Accounts Manager', 70, 395);
-
-        ctx.fillText('Bengal Tech & Engineering Ltd.', 355, 365);
-        ctx.fillText('TIN: 492817462011', 355, 395);
-
-        ctx.font = 'bold 22px Inter, sans-serif';
-        ctx.fillText('৳ 45,500.00', 690, 385);
-
-        ctx.font = '17px "Hind Siliguri", sans-serif';
-        ctx.fillText('জমার খাত / অর্থনৈতিক কোড:', 70, 505);
-        ctx.fillText('1-1141-0010-0111', 70, 535);
-        ctx.fillText('উৎসে কর (AIT @ 5% against INV-9921)', 355, 505);
-        ctx.fillText('Deputy Commissioner of Taxes, Zone-04', 355, 535);
-        ctx.fillText('৪৫,৫০০/- মাত্র', 690, 520);
-
-        ctx.fillText('কথায় (In Words): চল্লিশ পাঁচ হাজার পাঁচশত টাকা মাত্র (Forty-Five Thousand Five Hundred Taka Only)', 70, 675);
-        ctx.fillText('মন্তব্য: AIT deducted against Page-2 Invoice (Gross ৳9,10,000)', 70, 815);
-
-        ctx.save();
-        ctx.translate(740, 995);
-        ctx.rotate(-0.18);
-        ctx.strokeStyle = 'rgba(37, 99, 235, 0.45)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, 72, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(37, 99, 235, 0.55)';
-        ctx.font = 'bold 14px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('PUBALI BANK PLC', 0, -10);
-        ctx.fillText('CASH RECEIVED', 0, 12);
-        ctx.fillText('14 NOV 2026', 0, 34);
-        ctx.restore();
-
-        ctx.filter = 'none';
-        return canvas.toDataURL('image/png');
-      }
-
-      // Render Preview Surface (Image or PDF)
       function renderDocumentSurface() {
         const emptyDropzone = $('empty-dropzone');
         const renderedSurface = $('rendered-surface');
@@ -1120,6 +1049,8 @@
         const canvasEl = $('preview-pdf-canvas');
         const iframeEl = $('preview-pdf-iframe');
         const pdfControls = $('pdf-page-controls');
+
+        updateWorkspaceStage();
 
         if (!state.previewUrl) {
           emptyDropzone.classList.remove('hidden');
@@ -1145,7 +1076,6 @@
           return;
         }
 
-        // Render PDF via PDF.js if available, fallback to iframe
         if (window.pdfjsLib) {
           window.pdfjsLib.GlobalWorkerOptions.workerSrc =
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1191,20 +1121,6 @@
         });
       }
 
-      function handleLoadSample() {
-        if (state.previewUrl && state.previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(state.previewUrl);
-        }
-        state.previewUrl = generateSampleBlurryChallanDataUrl();
-        state.currentFile = { name: 'Sample_Blurry_TR_Form_6.png', type: 'image/png' };
-        state.isPdf = false;
-        state.extractedData = { ...SAMPLE_EXTRACTED_DATA };
-        renderDocumentSurface();
-        updateViewMode();
-        showToast('Loaded blurry sample Challan! Toggle ✨ Clarity Enhancer to sharpen.', 'info');
-      }
-
-      // Upload Stepper UI
       function updateUploadStepper(step) {
         const stepper = $('upload-stepper');
         const pills = $('stepper-pills');
@@ -1254,6 +1170,7 @@
           }
         }
         if (candidate?.data && typeof candidate.data === 'object') candidate = candidate.data;
+        if (candidate?.extracted && typeof candidate.extracted === 'object') candidate = candidate.extracted;
         if (candidate?.extractedData && typeof candidate.extractedData === 'object') candidate = candidate.extractedData;
         if (candidate?.challan && typeof candidate.challan === 'object') candidate = candidate.challan;
         return candidate;
@@ -1261,12 +1178,20 @@
 
       function hasChallanFields(obj) {
         if (!obj || typeof obj !== 'object') return false;
-        return ['challan_no', 'bank_name', 'amount', 'govt_office', 'purpose_code', 'paid_through_name'].some((k) =>
-          Boolean(obj[k])
-        );
+        return [
+          'challan_no',
+          'challan_total',
+          'deduction_tax_total',
+          'paid_by_name',
+          'bank_and_branch',
+          'bank_name',
+          'amount',
+        ].some((k) => Boolean(obj[k]));
       }
 
-      // Upload File to n8n Webhook
+      // Upload File to n8n Webhook:
+      // Stage 2 (While uploading): Only shows full-width PDF.
+      // Stage 3 (When finished): Reveals the right-side Google Sheet alongside the PDF.
       async function uploadFileToN8n(file) {
         if (!file) return;
         state.isUploading = true;
@@ -1297,7 +1222,7 @@
             parsedJson = rawText ? JSON.parse(rawText) : null;
           } catch (_) {}
 
-          if (!res.ok) {
+          if (!res.ok || parsedJson?.success === false) {
             throw new Error(
               parsedJson?.message || parsedJson?.error || rawText || `n8n returned HTTP ${res.status}`
             );
@@ -1306,11 +1231,13 @@
           const normalized = normalizeExtractedPayload(parsedJson);
           if (normalized && hasChallanFields(normalized)) {
             state.extractedData = normalized;
-            updateViewMode();
           }
 
+          // Workflow completed -> Transition to Stage 3 (Show PDF + Google Sheet side-by-side)
+          state.isSplitViewVisible = true;
           state.sheetRefreshNonce += 1;
-          updateSheetIframe();
+          updateWorkspaceStage();
+          updateViewMode();
           playChime('success');
 
           showWorkflowModal({
@@ -1318,15 +1245,15 @@
             fileName: file.name,
             extractedData: normalized,
             message:
+              parsedJson?.message ||
               normalized?.message ||
-              (typeof parsedJson === 'string' ? parsedJson : null) ||
               'Document uploaded to Drive, extracted, saved to Google Sheets, and indexed into Pinecone.',
           });
         } catch (err) {
           playChime('error');
           let errorMessage = err.message || 'Unknown error occurred.';
           let errorHint =
-            'Ensure your n8n workflow is Active, listening on the exact Webhook URL, and CORS is enabled.';
+            'Ensure your n8n workflow is Active/Published, listening on the exact Webhook URL, and CORS is enabled.';
           if (err.name === 'AbortError') {
             errorMessage = 'Request Timed Out (120s) while waiting for n8n Gemini Vision OCR.';
           } else if (err instanceof TypeError || /failed to fetch/i.test(errorMessage)) {
@@ -1357,16 +1284,25 @@
         state.currentFile = file;
         state.previewUrl = URL.createObjectURL(file);
         state.isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        state.extractedData = null;
+
+        // Stage 2: Hide the Excel sheet while the new PDF is being processed so the user focuses on the PDF first
+        state.isSplitViewVisible = false;
+        state.viewMode = 'scan';
         renderDocumentSurface();
+        updateViewMode();
         uploadFileToN8n(file);
       }
 
-      // Workflow Result Popup Modal
       function showWorkflowModal(result) {
         const modal = $('workflow-modal');
         const content = $('workflow-modal-content');
         const isSuccess = result.status === 'success';
         const data = result.extractedData || {};
+
+        const challanTotal = cleanDisplayAmount(data.challan_total || data.amount);
+        const deductionTotal = cleanDisplayAmount(data.deduction_tax_total);
+        const bankBranch = data.bank_and_branch || data.bank_name;
 
         content.innerHTML = `
           <div class="px-6 py-5 flex items-start gap-4 border-b ${
@@ -1379,12 +1315,12 @@
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-base font-bold">
-                ${isSuccess ? '✅ Document Processed & Saved Successfully!' : '❌ Workflow Execution Failed'}
+                ${isSuccess ? '✅ Document Processed & Split-Screen Activated!' : '❌ Workflow Execution Failed'}
               </h3>
               <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
                 ${
                   isSuccess
-                    ? 'n8n archived the scan to Google Drive, extracted fields via Gemini Vision OCR, appended Google Sheets, and indexed into Pinecone.'
+                    ? 'Your PDF and live Google Sheet are now displayed side-by-side behind this window.'
                     : 'The n8n document pipeline could not complete this request.'
                 }
               </p>
@@ -1397,14 +1333,16 @@
                 ? `<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-4 space-y-2.5 text-xs">
                     <div class="flex justify-between gap-3">
                       <span class="text-slate-500">File Name</span>
-                      <span class="font-semibold text-right truncate max-w-[260px]">${escapeHtml(result.fileName || 'Document')}</span>
+                      <span class="font-semibold text-right truncate max-w-[260px]">${escapeHtml(result.fileName || data.file_name || 'Document')}</span>
                     </div>
                     ${
                       hasChallanFields(data)
                         ? `
                         <div class="flex justify-between gap-3"><span class="text-slate-500">Challan No</span><span class="font-mono font-semibold">${escapeHtml(data.challan_no || '—')}</span></div>
-                        <div class="flex justify-between gap-3"><span class="text-slate-500">Total Amount (৳)</span><span class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">${escapeHtml(data.amount || '—')}</span></div>
-                        <div class="flex justify-between gap-3"><span class="text-slate-500">Bank Name</span><span class="font-medium text-right">${escapeHtml(data.bank_name || '—')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Date</span><span class="font-mono">${escapeHtml(data.date || '—')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Challan Total (৳)</span><span class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">৳ ${escapeHtml(challanTotal || '0.00')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Deduction Tax Total (৳)</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">৳ ${escapeHtml(deductionTotal || '0.00')}</span></div>
+                        <div class="flex justify-between gap-3"><span class="text-slate-500">Bank &amp; Branch</span><span class="font-medium font-bengali text-right">${escapeHtml(bankBranch || '—')}</span></div>
                       `
                         : `<div class="pt-2 border-t border-slate-200 dark:border-slate-800"><p class="font-medium">${escapeHtml(result.message)}</p></div>`
                     }
@@ -1421,7 +1359,8 @@
               </button>
               ${
                 isSuccess
-                  ? `<button id="btn-modal-sheet" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition">📊 View in Google Sheet</button>`
+                  ? `<button id="btn-modal-sheet" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition">📊 Verify Side-by-Side</button>
+                     <button id="btn-modal-ask-ai" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition">💬 Ask AI Assistant</button>`
                   : `<button id="btn-modal-settings" type="button" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">⚙️ Check Webhook Settings</button>
                      <button id="btn-modal-retry" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition">🔄 Retry Upload</button>`
               }
@@ -1443,6 +1382,12 @@
           state.sheetRefreshNonce += 1;
           updateSheetIframe();
         });
+        $('btn-modal-ask-ai')?.addEventListener('click', () => {
+          closeModal();
+          $('chat-widget').classList.remove('hidden');
+          $('chat-widget').classList.add('flex');
+          $('btn-chat-fab').classList.add('hidden');
+        });
         $('btn-modal-settings')?.addEventListener('click', () => {
           closeModal();
           openSettingsModal();
@@ -1457,7 +1402,6 @@
         });
       }
 
-      // Google Sheet Iframe URL Builder
       function buildSheetUrl(baseUrl, gid, nonce, minimal) {
         try {
           const url = new URL(baseUrl);
@@ -1474,6 +1418,7 @@
       }
 
       function updateSheetIframe() {
+        if (!state.isSplitViewVisible) return;
         const iframe = $('sheet-iframe');
         const extLink = $('link-external-sheet');
         if (iframe) {
@@ -1492,7 +1437,6 @@
         });
       }
 
-      // AI Chat Widget
       function renderSafeMarkdown(text) {
         if (!text) return '';
         try {
@@ -1511,7 +1455,7 @@
           box.innerHTML = `
             <div class="space-y-3 py-2">
               <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/70 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Ask questions in <strong>Bangla or English</strong> about uploaded Treasury Challans, AIT deductions, bank branches, or vendor invoices indexed in Pinecone.
+                Ask questions in <strong>Bangla or English</strong> about uploaded Treasury Challans, AIT deductions, bank branches, or vendor invoices indexed in Pinecone &amp; Google Sheets.
               </div>
               <div class="space-y-1.5">
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Suggestions</p>
@@ -1578,14 +1522,14 @@
         renderChatMessages();
 
         try {
+          const formData = new FormData();
+          formData.append('action', 'sendMessage');
+          formData.append('sessionId', state.chatSessionId);
+          formData.append('chatInput', query);
+
           const res = await fetch(state.settings.chatWebhookUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'sendMessage',
-              sessionId: state.chatSessionId,
-              chatInput: query,
-            }),
+            body: formData,
           });
 
           const rawText = await res.text();
@@ -1612,7 +1556,7 @@
           state.chatMessages.push({
             role: 'assistant',
             isError: true,
-            text: `**Connection Error:** Could not reach \`${state.settings.chatWebhookUrl}\`. Verify your n8n Chat Workflow is Active and CORS is allowed.`,
+            text: `**Connection Error (${escapeHtml(err.message)}):** Could not reach \`${state.settings.chatWebhookUrl}\`. Verify your combined workflow is **Published / Active** in n8n and that **n8n Chat Webhook URL** in **⚙️ Settings** ends with \`/webhook/chat-challan\`.`,
           });
         } finally {
           state.isChatSending = false;
@@ -1620,7 +1564,6 @@
         }
       }
 
-      // Settings Modal
       function openSettingsModal() {
         $('inp-upload-webhook').value = state.settings.uploadWebhookUrl;
         $('inp-chat-webhook').value = state.settings.chatWebhookUrl;
@@ -1634,24 +1577,18 @@
         $('settings-modal').classList.remove('flex');
       }
 
-      // Initialize Event Listeners
       function init() {
         applyTheme();
         applyEnhancerFilters();
         applyTransform();
-        updateSheetIframe();
+        renderDocumentSurface(); // Starts in Stage 1: Clean Empty Dropzone (no sample PDF, no Excel sheet)
         renderChatMessages();
 
-        // Automatically load the sample blurry Challan on first visit so the screen is immediately rich & interactive
-        handleLoadSample();
-
-        // Theme toggle
         $('btn-theme-toggle').addEventListener('click', () => {
           state.theme = state.theme === 'dark' ? 'light' : 'dark';
           applyTheme();
         });
 
-        // Upload buttons
         $('btn-top-upload').addEventListener('click', () => $('top-file-input').click());
         $('btn-center-upload').addEventListener('click', () => $('top-file-input').click());
         $('top-file-input').addEventListener('change', (e) => {
@@ -1660,10 +1597,6 @@
           e.target.value = '';
         });
 
-        // Load sample button
-        $('btn-load-sample').addEventListener('click', handleLoadSample);
-
-        // Drag and drop
         const dropzone = $('viewer-dropzone');
         const dragOverlay = $('drag-overlay');
         dropzone.addEventListener('dragover', (e) => {
@@ -1683,7 +1616,6 @@
           if (f) handleFileSelected(f);
         });
 
-        // View mode tabs
         $('tab-view-scan').addEventListener('click', () => {
           state.viewMode = 'scan';
           updateViewMode();
@@ -1693,7 +1625,6 @@
           updateViewMode();
         });
 
-        // Zoom / Rotate / Fullscreen / PDF navigation
         $('btn-zoom-in').addEventListener('click', () => {
           state.zoom = Math.min(3, +(state.zoom + 0.15).toFixed(2));
           applyTransform();
@@ -1728,7 +1659,6 @@
           }
         });
 
-        // Clarity Enhancer controls
         $('btn-toggle-enhancer').addEventListener('click', () => {
           state.enhancer.enabled = !state.enhancer.enabled;
           applyEnhancerFilters();
@@ -1758,7 +1688,6 @@
           applyEnhancerFilters();
         });
 
-        // Split Pane Resizer
         let isResizing = false;
         $('split-resizer').addEventListener('mousedown', () => {
           isResizing = true;
@@ -1776,7 +1705,6 @@
           document.body.style.cursor = '';
         });
 
-        // Google Sheet Tabs & Refresh
         document.querySelectorAll('.sheet-tab-btn').forEach((btn) => {
           btn.addEventListener('click', () => {
             state.activeSheetGid = btn.getAttribute('data-sheet-gid');
@@ -1789,12 +1717,12 @@
           showToast('Google Sheet refreshed.', 'info');
         });
 
-        // Mobile Tabs
         document.querySelectorAll('.mobile-tab-btn').forEach((btn) => {
           btn.addEventListener('click', () => {
+            if (btn.disabled) return;
             const tab = btn.getAttribute('data-mobile-tab');
             document.querySelectorAll('.mobile-tab-btn').forEach((b) => {
-              b.className = 'mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition';
+              b.className = 'mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 dark:text-slate-400 transition disabled:opacity-40';
             });
             btn.className = 'mobile-tab-btn py-2.5 text-xs font-semibold border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800/50 transition';
 
@@ -1819,7 +1747,6 @@
           });
         });
 
-        // Chat Widget Open / Close / Reset / Submit
         $('btn-chat-fab').addEventListener('click', () => {
           $('chat-widget').classList.remove('hidden');
           $('chat-widget').classList.add('flex');
@@ -1842,7 +1769,6 @@
           sendChatMessage();
         });
 
-        // Settings Modal
         $('btn-open-settings').addEventListener('click', openSettingsModal);
         $('btn-close-settings').addEventListener('click', closeSettingsModal);
         $('btn-cancel-settings').addEventListener('click', closeSettingsModal);
@@ -1859,7 +1785,7 @@
             googleSheetUrl: $('inp-sheet-url').value.trim(),
           };
           localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
-          updateSheetIframe();
+          if (state.isSplitViewVisible) updateSheetIframe();
           closeSettingsModal();
           showToast('Settings saved to browser localStorage.', 'success');
         });
